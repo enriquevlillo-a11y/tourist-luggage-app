@@ -20,7 +20,7 @@ With this app, users can easily find secure, verified storage locations around t
 
 ## 🛠️ Tech Stack (Planned)
 - **Frontend**: React Native (Expo)  
-- **Backend**: Node.js with Express  
+- **Backend**: Spring Boot (Java)  
 - **Database**: PostgreSQL (with potential use of Firebase for auth/notifications)  
 - **Payments**: Stripe API  
 - **Maps & Location**: Google Maps API  
@@ -39,7 +39,7 @@ With this app, users can easily find secure, verified storage locations around t
 This project is also an opportunity to expand my skills in:  
 - Mobile app development with **React Native**.  
 - API integration (Stripe, Google Maps).  
-- Backend development with **Node.js** and **PostgreSQL**.  
+- Backend development with **Java** and **PostgreSQL**.  
 - Cybersecurity and secure payment handling.  
 
 ---
@@ -54,7 +54,8 @@ This project is also an opportunity to expand my skills in:
 
 ---
 
-## 👤 Author
+## 👤 Team
+**TEAM LEAD**
 **Enrique Vázquez Lillo**  
 - 🎓 Mathematics Major (Computer Science Track) at FIU  
 - 🌍 Based in Miami, FL  
