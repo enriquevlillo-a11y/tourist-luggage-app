@@ -1,15 +1,37 @@
 //Our main map view component. This can be imported and placed on any page. 
 //TODO: Use the newly acquired Google Maps API Key | MAY NEED TO BE DEPLOYED TO GOOGLE APP STORE AT LEAST ONCE 
 //TODO: Communicate with backend to place pins of hosts
-//TODO: Change the default location to the users', preferably.  UPDATE: Done but the android emulator defaults to Google HQ. On an actual device, it grabs the location but does NOT change the view to reflect this. 
+//TODO: Rerequest location permission from user if they declined. Nothing happens if declined currently. 
 
 import React from 'react';
-import { Text } from '@react-navigation/elements';
 import { useState, useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, Button, Alert, BackHandler } from 'react-native';
 import MapView, { Marker, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
+import { Platform } from 'react-native';
 
+
+/**
+ * Displays a map centered on the user's current location.
+ *
+ * - Requests location permissions and fetches the user's current position.
+ * - Shows a marker at the user's location.
+ * - Displays an error message if location permission is denied.
+ * - Uses Expo Location API and React Native Maps.
+ *
+ * @returns A React component rendering a map with the user's location marker.
+ */
+const LocationDeniedAlert = () =>
+  Alert.alert('Error', 'You need to allow APP to access your location to operate correctly!', [
+    {
+      onPress: () => BackHandler.exitApp(),
+      style: 'cancel'
+    },
+    {
+      text: 'Allow',
+      onPress: () => console.log('Allow pressed'),
+    }
+  ]);
 
 export default function MapScreen() {
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
@@ -22,6 +44,7 @@ export default function MapScreen() {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         setErrorMsg('Permission to access location was denied');
+        LocationDeniedAlert();
         return;
       }
 
@@ -51,20 +74,15 @@ export default function MapScreen() {
     <View style={styles.container}>
       <MapView
         style={styles.map}
-        initialRegion={region}
+        region={region}
         showsUserLocation={true}
-        followsUserLocation={false}
+        {...(Platform.OS === 'ios' ? { followsUserLocation: true } : {})}
       >
         {region && (
           <Marker
             coordinate={region}
           />
         )}
-        <Marker
-          coordinate={{ latitude: 25.7617, longitude: -80.1918 }}
-          title="Miami"
-          description="This is a marker in Miami."
-        />
       </MapView>
     </View>
   );
