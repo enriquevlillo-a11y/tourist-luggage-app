@@ -1,3 +1,5 @@
+//This is the entry point for the program. 
+
 import { Text, View, StyleSheet } from "react-native";
 import MapScreen from '@/components/map-screen'
 

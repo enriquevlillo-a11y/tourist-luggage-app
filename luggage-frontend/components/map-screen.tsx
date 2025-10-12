@@ -1,3 +1,8 @@
+//Our main map view component. This can be imported and placed on any page. 
+//TODO: Use the newly acquired Google Maps API Key | MAY NEED TO BE DEPLOYED TO GOOGLE APP STORE AT LEAST ONCE 
+//TODO: Communicate with backend to place pins of hosts
+//TODO: Change the default location to the users', preferably. 
+
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';

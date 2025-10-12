@@ -1,3 +1,7 @@
+//The NON Android version of this component. Currently doesnt work since importing react-native-maps doesnt work on web? 
+//TODO: Find a workaround for this web version. 
+
+
 import React from 'react';
 // import MapView from 'react-native-maps';
 import { StyleSheet, View } from 'react-native';
