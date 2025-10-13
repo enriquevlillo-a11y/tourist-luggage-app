@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { View, Text, FlatList, TextInput, TouchableOpacity } from "react-native";
 import { Link } from "expo-router";
+import MapScreen from '../../components/map-screen'
 
 const MOCK = [
   { id:1, name:"Locker Center", price:6, address:"Brickell Ave" },
@@ -32,7 +33,7 @@ export default function Home() {
 
       {/* “Mapa” placeholder */}
       <View style={{ margin:16, height:120, backgroundColor:"#EEF2FF", borderRadius:60, justifyContent:"center", alignItems:"center", borderWidth:1, borderColor:"#E5E7EB" }}>
-        <Text>Map placeholder</Text>
+        <MapScreen/>
       </View>
 
       {/* Lista de cards */}
