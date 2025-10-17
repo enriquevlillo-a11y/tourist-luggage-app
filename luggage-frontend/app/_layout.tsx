@@ -15,7 +15,7 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <Stack
         screenOptions={{
-          title: 'Home',
+          title: 'Luggo',
           headerShown: true,
           headerRight: AccountButton,
           headerStyle: {

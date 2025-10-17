@@ -1,12 +1,11 @@
-//This page shows all the details and features a particular spot has such as the price, hours, location and so on. 
-//
-
+// SpotDetail.tsx
 import { useLocalSearchParams, useNavigation } from "expo-router";
-import { View, Text, Button, StyleSheet } from "react-native";
-import { useEffect, useState } from 'react';
+import { View, Text, Button, StyleSheet, ScrollView } from "react-native";
+import { useEffect, useState } from "react";
 import { useSpotsStore } from "../../stores/spots";
 import StarRating from "react-native-star-rating-widget";
 import { LinearGradient } from "expo-linear-gradient";
+import MapView, { Marker } from "react-native-maps";
 
 export default function SpotDetail() {
   const navigation = useNavigation();
@@ -14,128 +13,212 @@ export default function SpotDetail() {
   const spot = useSpotsStore((s) => s.getById(Number(id)));
   const [rating, setRating] = useState(spot?.rating ?? 0);
 
-
-  //Simple text if we can't find the spot by its id. 
   if (!spot) {
-    return <View style={{ padding: 16 }}><Text>Spot not found!</Text></View>;
+    return (
+      <View style={{ padding: 16 }}>
+        <Text>Spot not found!</Text>
+      </View>
+    );
   }
 
-  //Override the default header title: 'Home'
   useEffect(() => {
     navigation.setOptions({ title: "Reserve Spot" });
   }, [navigation]);
 
+  const region = {
+    latitude: spot.lat,
+    longitude: spot.long,
+    latitudeDelta: 0.012,  // tighter zoom than default
+    longitudeDelta: 0.008,
+  };
+
   return (
     <View style={styles.root}>
-      <LinearGradient
-        colors={['#f9f9f9', '#2476B488']} start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={styles.card}
-      >
-        {/* Header row */}
-        <View style={styles.headerRow}>
-          {/* Left: Name + Rating */}
-          <View style={styles.leftCol}>
-            <Text style={styles.reserveSpotTitle}>{spot.name}</Text>
+      {/* TOP: Map */}
+      <View style={styles.mapWrapper}>
+        <MapView style={styles.map} initialRegion={region}>
+          <Marker coordinate={{ latitude: spot.lat, longitude: spot.long }} title={spot.name} />
+        </MapView>
+      </View>
 
-            <View style={styles.ratingRow}>
-              <StarRating
-                starSize={22}
-                rating={rating}
-                onChange={setRating}
-                enableHalfStar
-              />
-              <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
+      {/* BOTTOM: Scrollable details */}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <LinearGradient
+          colors={["#F8FAFC", "#4288ceff"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.card}
+        >
+          {/* Header row */}
+          <View style={styles.headerRow}>
+            {/* Left: Name + Rating */}
+            <View style={styles.leftCol}>
+              <Text style={styles.reserveSpotTitle}>{spot.name}</Text>
+
+              <View style={styles.ratingRow}>
+                <StarRating
+                  starSize={22}
+                  rating={rating}
+                  onChange={setRating}
+                  enableHalfStar
+                />
+                <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
+              </View>
+            </View>
+
+            {/* Right: Book + Price underneath */}
+            <View style={styles.ctaCol}>
+              <Button title="Book" onPress={() => { /* your action */ }} />
+              <Text style={styles.priceText}>
+                ${spot.price}
+                <Text style={styles.priceUnit}> /day</Text>
+              </Text>
             </View>
           </View>
 
-          {/* Right: Book + Price underneath */}
-          <View style={styles.ctaCol}>
-            <Button title="Book" onPress={() => { /* your action */ }} />
-            <Text style={styles.priceText}>
-              ${spot.price}
-              <Text style={styles.priceUnit}> /day</Text>
-            </Text>
+          {/* Address / details */}
+          <View style={styles.details}>
+            <Text style={styles.subtleLabel}>Address</Text>
+            <Text style={styles.address}>{spot.address}</Text>
           </View>
-        </View>
 
-        {/* Address / details */}
-        <View style={styles.details}>
-          <Text style={styles.hoursTitle}>Hours of Operation</Text>
-        </View>
-      </LinearGradient>
+          {/* Hours block (example) */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Hours of Operation</Text>
+            <Text style={styles.sectionText}>Mon–Sun · 8:00 AM – 10:00 PM</Text>
+          </View>
+
+          {/* Add more sections here... */}
+          <Text style={styles.sectionTitle}>Reviews</Text>
+        </LinearGradient>
+
+        {/* Spacer so it feels breathable when scrolled to bottom */}
+        <View style={{ height: 24 }} />
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { padding: 16, gap: 12 },
+  root: {
+    flex: 1,
+    backgroundColor: "#F2F4F7",
+  },
 
+  // MAP
+  mapWrapper: {
+    height: 260,               // nice visual height; tweak as you like
+    backgroundColor: "#e6ecf2",
+  },
+  map: {
+    flex: 1,
+  },
+
+  // SCROLL
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
+    paddingTop: 12,
+  },
+
+  // CARD
   card: {
     borderRadius: 16,
     padding: 16,
-    overflow: 'hidden',         // ensures rounded corners clip the gradient
-    shadowColor: '#000',
+    overflow: "hidden", // ensures rounded corners clip the gradient
+    shadowColor: "#000",
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 3,
   },
 
   headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     gap: 12,
   },
 
-  leftCol: { flex: 1, minWidth: 0 },
+  leftCol: {
+    flex: 1,
+    minWidth: 0
+  },
 
   ctaCol: {
     width: 140,
-    alignItems: 'center',
+    alignItems: "center",
     gap: 6,
   },
 
   reserveSpotTitle: {
-    fontFamily: 'Roboto',
+    fontFamily: "Roboto",
     fontSize: 26,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: 0.5,
-    color: '#222',
+    color: "#222",
     marginBottom: 6,
   },
 
   ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
-    left: -8
+    left: -8,
   },
 
-  ratingText: { 
-    fontSize: 14, 
-    color: '#555' },
+  ratingText: {
+    fontSize: 14,
+    color: "#555",
+  },
 
   priceText: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#2E7D32',
+    fontWeight: "700",
+    color: "#2E7D32",
     marginTop: 4,
-    textAlign: 'center',
+    textAlign: "center",
   },
 
   priceUnit: {
     fontSize: 14,
-    color: '#555',
-    fontWeight: '600'
+    color: "#555",
+    fontWeight: "600",
   },
 
   details: {
-    marginTop: 12
+    marginTop: 12,
   },
 
-  hoursTitle: {
+  subtleLabel: {
+    fontSize: 12,
+    color: "#6b7280",
+    marginBottom: 4,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+  },
+
+  address: {
+    fontSize: 15,
+    color: "#444",
+  },
+
+  section: {
+    marginTop: 16,
+  },
+  sectionTitle: {
     fontSize: 20,
-    fontWeight: '600',
-    color: '#444'
+    fontWeight: "600",
+    color: "#444",
+    marginBottom: 6,
+  },
+  sectionText: {
+    fontSize: 15,
+    color: "#444",
+    lineHeight: 20,
   },
 });

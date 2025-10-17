@@ -19,24 +19,24 @@ import { useSpotsStore } from "../../stores/spots";
 //TODO: Grab list of available hosts from backend
 //TODO: The list of available hosts should be based on the current map location and should be within a specified radius. \
 
-const MOCK = [
-  { id: 1, name: "Locker Center", price: 6, address: "Brickell Ave", rating: 4.5 },
-  { id: 2, name: "Hotel Plaza", price: 8, address: "Downtown", rating: 4.2 },
-  { id: 3, name: "Cafe Storage", price: 5, address: "Wynwood", rating: 4.0 },
-  { id: 4, name: "Bayfront Lockers", price: 7, address: "Biscayne Blvd", rating: 4.3 },
-  { id: 5, name: "Airport Storage Hub", price: 10, address: "Miami International Airport", rating: 4.7 },
-];
+// const MOCK = [
+//   { id: 1, name: "Locker Center", price: 6, address: "Brickell Ave", rating: 4.5, lat: 25.7617, long: -80.1918, reviews: [] },
+//   { id: 2, name: "Hotel Plaza", price: 8, address: "Downtown", rating: 4.2, lat: 25.7736, long: -80.1937, reviews: [] },
+//   { id: 3, name: "Cafe Storage", price: 5, address: "Wynwood", rating: 4.0, lat: 25.8007, long: -80.1994, reviews: [] },
+//   { id: 4, name: "Bayfront Lockers", price: 7, address: "Biscayne Blvd", rating: 4.3, lat: 25.7825, long: -80.1856, reviews: [] },
+//   { id: 5, name: "Airport Storage Hub", price: 10, address: "Miami International Airport", rating: 4.7, lat: 25.7959, long: -80.2870, reviews: [] },
+// ];
 
 
 
 
 export default function Home() {
   const [q, setQ] = useState("");
-  const data = MOCK.filter(s => s.name.toLowerCase().includes(q.toLowerCase()));
-
-  useEffect(() => {
-    useSpotsStore.getState().setSpots(MOCK);
-  })
+  // const data = MOCK.filter(s => s.name.toLowerCase().includes(q.toLowerCase()));
+  const data = useSpotsStore((s) => s.spots);
+  // useEffect(() => {
+  //   useSpotsStore.getState().setSpots(MOCK);
+  // }, [])
 
   return (
     <View style={styles.root}>
