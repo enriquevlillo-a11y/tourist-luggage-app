@@ -33,7 +33,9 @@ import { useSpotsStore } from "../../stores/spots";
 export default function Home() {
   const [q, setQ] = useState("");
   // const data = MOCK.filter(s => s.name.toLowerCase().includes(q.toLowerCase()));
-  const data = useSpotsStore((s) => s.spots);
+  const data = useSpotsStore((s) => s.spots).filter(
+    (spot) => spot.name.toLowerCase().includes(q.toLowerCase())
+  );
   // useEffect(() => {
   //   useSpotsStore.getState().setSpots(MOCK);
   // }, [])
