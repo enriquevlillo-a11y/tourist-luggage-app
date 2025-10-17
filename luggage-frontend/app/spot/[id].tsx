@@ -22,6 +22,10 @@ export default function SpotDetail() {
   }
 
   useEffect(() => {
+    setRating(spot?.rating ?? 0);
+  }, [spot?.rating]);
+
+  useEffect(() => {
     navigation.setOptions({ title: "Reserve Spot" });
   }, [navigation]);
 
