@@ -3,6 +3,7 @@ package com.dani.luggagebackend.Model;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -16,6 +17,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @Component
 @Entity
+@Table(name = "locations")
 public class Location {
     @Id
     private UUID id;
