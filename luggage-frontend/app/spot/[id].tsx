@@ -1,6 +1,6 @@
 // SpotDetail.tsx
 import { useLocalSearchParams, useNavigation } from "expo-router";
-import { View, Text, Button, StyleSheet, ScrollView } from "react-native";
+import { View, Text, Button, StyleSheet, ScrollView, FlatList } from "react-native";
 import { useEffect, useState } from "react";
 import { useSpotsStore } from "../../stores/spots";
 import StarRating from "react-native-star-rating-widget";
@@ -45,12 +45,7 @@ export default function SpotDetail() {
         </MapView>
       </View>
 
-      {/* BOTTOM: Scrollable details */}
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+
         <LinearGradient
           colors={["#F8FAFC", "#4288ceff"]}
           start={{ x: 0, y: 0 }}
@@ -98,11 +93,25 @@ export default function SpotDetail() {
 
           {/* Add more sections here... */}
           <Text style={styles.sectionTitle}>Reviews</Text>
+        <FlatList
+          data={spot.reviews}
+          renderItem={({ item }) => (
+            <View style={{ paddingVertical: 8 }}>
+              <Text style={styles.sectionText}>
+                {item?.comment ?? item?.comment ?? String(item)}
+              </Text>
+              <Text style={{ fontSize: 13, color: "#6b7280", marginTop: 4 }}>
+                {item?.user ? `— ${item.user}` : null}
+                {item?.rating ? ` (${item.rating.toFixed(1)} ⭐)` : null}
+              </Text>
+            </View>
+          )}
+          keyExtractor={(item, index) => (item?.id ? String(item.id) : String(index))}
+        />
         </LinearGradient>
 
         {/* Spacer so it feels breathable when scrolled to bottom */}
         <View style={{ height: 24 }} />
-      </ScrollView>
     </View>
   );
 }
