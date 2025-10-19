@@ -1,4 +1,6 @@
 //This is where we define our data model for the front end. 
+//We also define our Zustand store for managing spots data globally.
+//This includes functions to set spots, get a spot by its ID, and add reviews to a spot.
 
 import {create} from "zustand";
 import { MOCK_SPOTS } from "../app/data/mockSpots";
@@ -38,7 +40,8 @@ function averageStars(reviews: Review[]): number {
 }
 
 export const useSpotsStore = create<State>((set, get) => ({
-    spots: MOCK_SPOTS,
+  // In dev mode, initialize with mock data, otherwise start empty
+    spots: __DEV__ ? MOCK_SPOTS : [],
     setSpots: (spots) => set({spots}),
     getById: (id) => get().spots.find((s) => s.id === id),
     addReview: (spotId, review) =>

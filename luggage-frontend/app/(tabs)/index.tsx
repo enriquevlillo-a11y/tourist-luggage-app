@@ -8,8 +8,8 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  TouchableWithoutFeedback,
-  Keyboard
+  Keyboard,
+  Platform
 } from "react-native";
 import { Link } from "expo-router";
 import MapScreen from '../../components/map-screen'
@@ -19,29 +19,37 @@ import { useSpotsStore } from "../../stores/spots";
 //TODO: Grab list of available hosts from backend
 //TODO: The list of available hosts should be based on the current map location and should be within a specified radius. \
 
+//Pick the correct base url depending on the platform
+function getApiBase () {
+  if (Platform.OS === "android") return "http://10.0.2.2:8081";
+  return "http://localhost:8081";
+}
 
 export default function Home() {
   const [q, setQ] = useState("");
   const { spots, setSpots } = useSpotsStore();
-  const data = useSpotsStore((s) => s.spots).filter(
-    (spot) => spot.name.toLowerCase().includes(q.toLowerCase())
-  );
 
+
+  //Fetch spots from backend when component mounts
+  // and store them in Zustand store
   useEffect(() => {
+    const base = getApiBase();
     async function fetchSpots() {
       try {
-        const res = await fetch("https://localhost:8081/spots?lat=25.7617&lng=-80.1918&radiusMeters=3000");
+        const res = await fetch(`${base}/spots?lat=25.7617&lng=-80.1918&radiusMeters=3000`);
         const data = await res.json();
         setSpots(data); // updates Zustand store
       } catch (err) {
         console.error("Failed to fetch spots:", err);
+        console.log({base});
       }
     }
 
     fetchSpots();
-  }, []); // runs once when Home mounts
+  }, [setSpots]); // runs once when Home mounts
 
-  const filtered = spots.filter(
+  //Filter spots based on search query
+  const data = spots.filter(
     (spot) => spot.name.toLowerCase().includes(q.toLowerCase())
   );
 
