@@ -165,7 +165,7 @@ export default function SpotDetail() {
           {/* Add more sections here... */}
           <Text style={styles.sectionTitle}>Reviews</Text>
         <FlatList
-          data={spot.reviews}
+          data={spot.reviews ?? []}
           renderItem={({ item }) => (
             <View style={{ paddingVertical: 8 }}>
               <Text style={styles.sectionText}>
