@@ -1,3 +1,74 @@
+/**
+ * SpotDetail
+ *
+ * React Native / Expo screen component that displays details for a single "spot"
+ *  identified by a route param.
+ *
+ * Behavior
+ * - Reads the `id` route parameter via `useLocalSearchParams<{ id: string }>()`
+ *   and looks up the spot using `useSpotsStore((s) => s.getById(Number(id)))`.
+ * - If no spot is found, renders a simple "Spot not found!" fallback view.
+ * - Maintains local UI state for the star rating (`rating`) initialized from
+ *   `spot?.rating` and kept in sync via an effect:
+ *     useEffect(() => setRating(spot?.rating ?? 0), [spot?.rating])
+ * - Sets the navigation bar title to "Reserve Spot" via:
+ *     navigation.setOptions({ title: "Reserve Spot" })
+ *
+ * UI composition
+ * - Top: a MapView centered on the spot's coordinates with a Marker.
+ *   The map is given an `initialRegion` constructed from:
+ *     { latitude: spot.lat, longitude: spot.long, latitudeDelta, longitudeDelta }
+ *   Note: `initialRegion` is used; to animate or reactively update the map
+ *   when the spot changes, consider using the `region` prop or imperative refs.
+ * - Card (LinearGradient) containing:
+ *   - Header row with:
+ *     - Left column: spot name and a StarRating component bound to local `rating`.
+ *     - Right column: "Book" Button and price display (formatted as `$<price> /day`).
+ *   - Details block: Address label + address text.
+ *   - Hours of Operation example block (static text by default).
+ *   - Reviews: a FlatList rendering `spot.reviews` with each item showing comment,
+ *     optional user attribution, and optional numeric rating.
+ *
+ * Data expectations (shape of `spot`)
+ * - id: number | string
+ * - name: string
+ * - lat: number
+ * - long: number
+ * - rating?: number
+ * - price?: number
+ * - address?: string
+ * - reviews?: Array<{
+ *     id?: number | string;
+ *     comment?: string;
+ *     user?: string;
+ *     rating?: number;
+ *   }>
+ *
+ * Accessibility & UX notes
+ * - Ensure the StarRating control is accessible (labeling / focus) if required.
+ * - The "Book" Button handler is a placeholder; wire navigation or booking logic
+ *   to integrate with the app's reservation flow.
+ * - When rendering user-generated content (reviews/comments), sanitize or escape
+ *   strings as appropriate for your platform to avoid injection-like issues.
+ *
+ * Performance & robustness recommendations
+ * - Parse and validate the `id` route param before lookup (currently cast with Number).
+ * - Guard all spot fields that may be undefined before use (map coordinates, price).
+ * - Consider memoizing derived values (e.g. region) if the component becomes more complex.
+ * - If many reviews are expected, tune FlatList props (initialNumToRender, maxToRenderPerBatch)
+ *   and provide stable keys for list items.
+ *
+ * File path / route
+ * - Route pattern: /spot/[id]
+ *
+ * Side effects
+ * - Calls `navigation.setOptions` to set the screen title.
+ * - Calls `setRating` effect when the spot's rating changes.
+ *
+ * Example
+ * - Navigating to this screen with id=42 should render the details for the spot
+ *   returned by `useSpotsStore().getById(42)`.
+ */
 // SpotDetail.tsx
 import { useLocalSearchParams, useNavigation } from "expo-router";
 import { View, Text, Button, StyleSheet, ScrollView, FlatList } from "react-native";
