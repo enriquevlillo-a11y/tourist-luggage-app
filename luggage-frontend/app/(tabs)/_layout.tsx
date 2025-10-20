@@ -1,11 +1,35 @@
-import { Tabs } from "expo-router";
+  //This sets up our stack navigation for the rest of the app. 
 
-export default function TabsLayout() {
-  return (
-    <Tabs screenOptions={{ headerShown: false }}>
-      <Tabs.Screen name="index"   options={{ title: "Home" }} />
-      <Tabs.Screen name="map"     options={{ title: "Map" }} />
-      <Tabs.Screen name="account" options={{ title: "Account" }} />
-    </Tabs>
-  );
-}
+  import { Stack } from "expo-router";
+  import { SafeAreaProvider } from "react-native-safe-area-context";
+  import { Button } from "react-native";
+
+  function AccountButton() {
+    return (
+      <Button title="Account" />
+    )
+  }
+
+  export default function RootLayout() {
+    return (
+      <SafeAreaProvider>
+        <Stack
+          screenOptions={{
+            title: 'Luggo',
+            headerShown: true,
+            headerRight: AccountButton,
+            headerStyle: {
+              backgroundColor: '#a7bbf6'
+            },
+            headerTitleStyle: {
+              fontWeight: 'bold'
+            }
+          }} >
+          <Stack.Screen
+            name="(tabs)"
+          />
+
+        </Stack>
+      </SafeAreaProvider>
+    );
+  }
