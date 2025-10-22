@@ -28,6 +28,7 @@ export default function RootLayout() {
         <Stack.Screen
           name="(tabs)"
         />
+        <Stack.Screen name = "spot" />
 
       </Stack>
     </SafeAreaProvider>
