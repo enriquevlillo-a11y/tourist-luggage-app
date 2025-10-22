@@ -3,7 +3,7 @@
 //This includes functions to set spots, get a spot by its ID, and add reviews to a spot.
 
 import {create} from "zustand";
-import { MOCK_SPOTS } from "../app/data/mockSpots";
+import { MOCK_SPOTS } from "../data/mockSpots";
 
 export type Review = {
     id: string;

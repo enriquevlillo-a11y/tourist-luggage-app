@@ -75,12 +75,12 @@ export default function Home() {
       <FlatList
         contentContainerStyle={styles.cardList}
         data={data}
-        keyExtractor={(it) => String(it.id)}
+        keyExtractor={(it, idx) => it.id ? String(it.id) : `spot-${idx}`}
         renderItem={({ item }) => (
           <Link href={`/spot/${item.id}`} asChild>
             <TouchableOpacity style={styles.card}>
               <Text style={{ fontWeight: "700", fontSize: 16 }}>{item.name}</Text>
-              <Text style={{ color: "#6B7280", marginTop: 4 }}>${item.price}/h</Text>
+              <Text style={{ color: "#6B7280", marginTop: 4 }}>${item.price.toFixed(2)}/h</Text>
               <Text style={{ color: "#9CA3AF", marginTop: 4 }}>{item.address}</Text>
             </TouchableOpacity>
           </Link>

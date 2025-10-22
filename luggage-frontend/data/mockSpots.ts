@@ -1,4 +1,4 @@
-import { Spot } from "../../stores/spots";
+import { Spot } from "../stores/spots";
 
 export const MOCK_SPOTS: Spot[] = [
   {
