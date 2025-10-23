@@ -59,5 +59,10 @@ This project is also an opportunity to expand my skills in:
 **Enrique Vázquez Lillo**  
 - 🎓 Mathematics Major (Computer Science Track) at FIU  
 - 🌍 Based in Miami, FL  
-- 📧 evazq084@fiu.edu  
-
+- 📧 evazq084@fiu.edu
+---
+**Developers**
+- Andres Linares
+- Kevin Pluas
+- Daniel Reyes
+- John Valdespino
