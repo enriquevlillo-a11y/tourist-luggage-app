@@ -5,21 +5,38 @@ import {
   SafeAreaProvider,
 } from 'react-native-safe-area-context';
 
-import { Calendar, CalendarList, Agenda } from "react-native-calendars";
+import { Calendar, CalendarList, Agenda, ExpandableCalendar } from "react-native-calendars";
 import { useState } from "react";
 
 export default function TemplateModal() {
   const router = useRouter();
+  
   const [selected, setSelected] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+
+
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.container}>
 
         {/* Header */}
         <Calendar onDayPress={day => {
-          setSelected(day.dateString);
+          if (!toDate) {
+            setToDate(day.dateString);
+          }
+          setFromDate(day.dateString);
           console.log('selected day', day);
-        }}/>
+
+          console.log({fromDate, toDate});
+        }}
+          markingType={'period'}
+          markedDates={{
+            toDate: {selected: true, startingDay: true, color: '#70d7c7', textColor: 'white'},
+            fromDate: {selected: true, endingDay: true, color: '#70d7c7', textColor: 'white'}
+          }}
+          
+        />
 
         {/* Body */}
         <View style={styles.body}>
