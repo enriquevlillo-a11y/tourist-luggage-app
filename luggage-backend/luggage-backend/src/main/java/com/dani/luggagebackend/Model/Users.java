@@ -49,6 +49,7 @@ public class Users {
 
     public enum Role {
         USER,
+        HOST,
         ADMIN
     }
 
