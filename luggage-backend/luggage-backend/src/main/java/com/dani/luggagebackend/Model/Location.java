@@ -29,10 +29,14 @@ public class Location {
 
     private String name;
     private String address;
+    private String city;
     private Double lat;
     private Double lng;
     private BigDecimal pricePerHour;
     private Integer capacity;
 
     private String hours;
+
+    @Builder.Default
+    private Boolean isActive = true;
 }

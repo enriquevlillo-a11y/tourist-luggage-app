@@ -16,11 +16,13 @@ public class LocationResponse {
     private UUID id;
     private String name;
     private String address;
+    private String city;
     private Double latitude;
     private Double longitude;
     private BigDecimal pricePerHour;
     private Integer capacity;
     private String hours;
+    private Boolean isActive;
     private Double distanceKm; // Distance from user's location
     private HostInfo host; // Information about the host
 

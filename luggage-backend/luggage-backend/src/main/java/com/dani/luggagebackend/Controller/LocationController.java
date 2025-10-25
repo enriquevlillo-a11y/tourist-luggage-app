@@ -10,7 +10,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @CrossOrigin
@@ -170,5 +173,196 @@ public class LocationController {
     public ResponseEntity<List<LocationResponse>> getLocationsByHost(@PathVariable UUID hostId) {
         List<LocationResponse> locations = locationService.getLocationsByHost(hostId);
         return ResponseEntity.ok(locations);
+    }
+
+    /**
+     * Search locations by keyword.
+     * Searches in name and address fields (case-insensitive).
+     *
+     * Example: GET /api/locations/search?q=downtown
+     *
+     * @param keyword Search term
+     * @return List of matching active locations
+     */
+    @GetMapping("/search")
+    public ResponseEntity<List<LocationResponse>> searchLocations(@RequestParam String q) {
+        List<LocationResponse> locations = locationService.searchLocations(q);
+        return ResponseEntity.ok(locations);
+    }
+
+    /**
+     * Filter locations with multiple criteria.
+     *
+     * Example: GET /api/locations/filter?minPrice=5&maxPrice=15&minCapacity=20
+     *
+     * @param minPrice Minimum price per hour (optional)
+     * @param maxPrice Maximum price per hour (optional)
+     * @param minCapacity Minimum capacity (optional)
+     * @param city City filter (optional)
+     * @return List of filtered active locations
+     */
+    @GetMapping("/filter")
+    public ResponseEntity<List<LocationResponse>> filterLocations(
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(required = false) Integer minCapacity,
+            @RequestParam(required = false) String city) {
+
+        List<LocationResponse> locations;
+
+        // Apply filters based on provided parameters
+        if (city != null && !city.isEmpty()) {
+            locations = locationService.getLocationsByCity(city);
+        } else if (minPrice != null && maxPrice != null) {
+            locations = locationService.filterByPriceRange(minPrice, maxPrice);
+        } else if (minCapacity != null) {
+            locations = locationService.filterByCapacity(minCapacity);
+        } else {
+            locations = locationService.getAllLocations();
+        }
+
+        return ResponseEntity.ok(locations);
+    }
+
+    /**
+     * Find nearby locations with optional filters.
+     *
+     * Example: POST /api/locations/nearby/filtered
+     * Body: {
+     *   "latitude": 40.7128,
+     *   "longitude": -74.0060,
+     *   "radiusKm": 10.0,
+     *   "minPrice": 5.0,
+     *   "maxPrice": 15.0,
+     *   "minCapacity": 20
+     * }
+     *
+     * @param params Request parameters including location and filters
+     * @return List of filtered nearby locations
+     */
+    @PostMapping("/nearby/filtered")
+    public ResponseEntity<List<LocationResponse>> findNearbyWithFilters(@RequestBody Map<String, Object> params) {
+        if (!params.containsKey("latitude") || !params.containsKey("longitude")) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        Double latitude = ((Number) params.get("latitude")).doubleValue();
+        Double longitude = ((Number) params.get("longitude")).doubleValue();
+        Double radiusKm = params.containsKey("radiusKm") ?
+                ((Number) params.get("radiusKm")).doubleValue() : 5.0;
+
+        BigDecimal minPrice = params.containsKey("minPrice") ?
+                new BigDecimal(params.get("minPrice").toString()) : null;
+        BigDecimal maxPrice = params.containsKey("maxPrice") ?
+                new BigDecimal(params.get("maxPrice").toString()) : null;
+        Integer minCapacity = params.containsKey("minCapacity") ?
+                ((Number) params.get("minCapacity")).intValue() : null;
+
+        List<LocationResponse> locations = locationService.findNearbyWithFilters(
+                latitude, longitude, radiusKm, minPrice, maxPrice, minCapacity
+        );
+
+        return ResponseEntity.ok(locations);
+    }
+
+    /**
+     * Get all unique cities with locations.
+     *
+     * Example: GET /api/locations/cities
+     *
+     * @return List of city names
+     */
+    @GetMapping("/cities")
+    public ResponseEntity<List<String>> getAllCities() {
+        List<String> cities = locationService.getAllCities();
+        return ResponseEntity.ok(cities);
+    }
+
+    /**
+     * Get locations by city.
+     *
+     * Example: GET /api/locations/city/new-york
+     *
+     * @param city City name
+     * @return List of active locations in the city
+     */
+    @GetMapping("/city/{city}")
+    public ResponseEntity<List<LocationResponse>> getLocationsByCity(@PathVariable String city) {
+        List<LocationResponse> locations = locationService.getLocationsByCity(city);
+        return ResponseEntity.ok(locations);
+    }
+
+    /**
+     * Get popular locations based on booking count.
+     *
+     * Example: GET /api/locations/popular?limit=10
+     *
+     * @param limit Maximum number of locations to return (default: 10)
+     * @return List of popular locations
+     */
+    @GetMapping("/popular")
+    public ResponseEntity<List<LocationResponse>> getPopularLocations(
+            @RequestParam(required = false, defaultValue = "10") Integer limit) {
+        List<LocationResponse> locations = locationService.getPopularLocations(limit);
+        return ResponseEntity.ok(locations);
+    }
+
+    /**
+     * Check location availability for a specific time period.
+     *
+     * Example: GET /api/locations/{id}/availability?startTime=...&endTime=...&capacity=5
+     *
+     * @param id Location ID
+     * @param startTime Booking start time (ISO 8601 format)
+     * @param endTime Booking end time (ISO 8601 format)
+     * @param capacity Required capacity
+     * @return Boolean indicating availability
+     */
+    @GetMapping("/{id}/availability")
+    public ResponseEntity<Map<String, Boolean>> checkAvailability(
+            @PathVariable UUID id,
+            @RequestParam String startTime,
+            @RequestParam String endTime,
+            @RequestParam Integer capacity) {
+        try {
+            Instant start = Instant.parse(startTime);
+            Instant end = Instant.parse(endTime);
+
+            boolean available = locationService.isLocationAvailable(id, start, end, capacity);
+            return ResponseEntity.ok(Map.of("available", available));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    /**
+     * Toggle location active/inactive status.
+     * Only the host who owns the location can toggle its status.
+     *
+     * Example: PATCH /api/locations/{id}/status
+     * Header: X-User-Id: <host-uuid>
+     * Body: { "isActive": false }
+     *
+     * @param id Location ID
+     * @param hostId Host ID from header
+     * @param payload Contains isActive boolean
+     * @return Updated location
+     */
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<LocationResponse> toggleLocationStatus(
+            @PathVariable UUID id,
+            @RequestHeader("X-User-Id") UUID hostId,
+            @RequestBody Map<String, Boolean> payload) {
+        try {
+            Boolean isActive = payload.get("isActive");
+            if (isActive == null) {
+                return ResponseEntity.badRequest().build();
+            }
+
+            LocationResponse location = locationService.toggleLocationStatus(id, hostId, isActive);
+            return ResponseEntity.ok(location);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
     }
 }
