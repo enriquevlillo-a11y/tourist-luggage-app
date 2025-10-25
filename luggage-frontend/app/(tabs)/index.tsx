@@ -21,8 +21,8 @@ import { useSpotsStore } from "../../stores/spots";
 
 //Pick the correct base url depending on the platform
 function getApiBase () {
-  if (Platform.OS === "android") return "http://10.0.2.2:8081";
-  return "http://localhost:8081";
+  if (Platform.OS === "android") return "http://10.0.2.2:5432";
+  return "http://localhost:5432";
 }
 
 export default function Home() {
@@ -34,9 +34,14 @@ export default function Home() {
   // and store them in Zustand store
   useEffect(() => {
     const base = getApiBase();
+    const controller = new AbortController();
     async function fetchSpots() {
       try {
-        const res = await fetch(`${base}/spots?lat=25.7617&lng=-80.1918&radiusMeters=3000`);
+        const res = await fetch(`${base}/api/locations`, {
+          method: "GET",
+          headers: { Accept: "application/json" },
+          signal: controller.signal,
+        });
         const data = await res.json();
         setSpots(data); // updates Zustand store
       } catch (err) {
