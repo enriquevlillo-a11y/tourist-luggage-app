@@ -65,6 +65,7 @@ export default function Account() {
 
       </View>
       <TouchableOpacity
+
       onPress ={ () => {} } 
       style={{
       backgroundColor: '#0e0c6d99', 
@@ -74,6 +75,12 @@ export default function Account() {
       }}>
         <Text style={{textAlign:'center',fontWeight: '700', fontSize:16, color: '#fff'}}>Login</Text>
       </TouchableOpacity>
+      
+      //Logging in with social media accounts.
+      <Text style= {{textAlign: 'center', color: '#666', marginBottom: 30 }}>
+        Or login with...
+        </Text>
+        
 
     </View>
     </SafeAreaView>
