@@ -1006,18 +1006,327 @@ X-User-Id: 55555555-5555-5555-5555-555555555555
 
 ## Bookings Module
 
-**Status:** NOT YET IMPLEMENTED
+### 1. Create Booking
+**POST** `/api/bookings`
 
-The BookingController currently exists but has no endpoints implemented.
+**Description:** Create a new booking at a storage location. Price is automatically calculated based on duration and location's hourly rate.
 
-**Planned Endpoints:**
-- `POST /api/bookings` - Create new booking
-- `GET /api/bookings/{id}` - Get booking by ID
-- `GET /api/bookings/user/{userId}` - Get user's bookings
-- `PUT /api/bookings/{id}` - Update booking
-- `DELETE /api/bookings/{id}` - Cancel booking
-- `PATCH /api/bookings/{id}/confirm` - Confirm booking (host only)
-- `PATCH /api/bookings/{id}/complete` - Mark booking as complete
+**Headers:**
+```
+Content-Type: application/json
+X-User-Id: 11111111-1111-1111-1111-111111111111
+```
+
+**Request Body:**
+```json
+{
+  "locationId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+  "startTime": "2025-12-01T10:00:00Z",
+  "endTime": "2025-12-01T16:00:00Z",
+  "numberOfItems": 2
+}
+```
+
+**Field Descriptions:**
+- `locationId` (required): UUID of the storage location
+- `startTime` (required): Booking start time (ISO 8601 format, must be in future)
+- `endTime` (required): Booking end time (must be after startTime)
+- `numberOfItems` (optional): Number of items/bags to store
+
+**Response (201 Created):**
+```json
+{
+  "id": "4e777fa6-691f-480d-9442-fcbf96956e0d",
+  "user": {
+    "id": "11111111-1111-1111-1111-111111111111",
+    "fullName": "John Doe",
+    "email": "john.doe@email.com"
+  },
+  "location": {
+    "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "name": "Times Square Luggage Hub",
+    "address": "1560 Broadway"
+  },
+  "startTime": "2025-12-01T10:00:00Z",
+  "endTime": "2025-12-01T16:00:00Z",
+  "priceCents": 3000,
+  "status": "PENDING"
+}
+```
+
+**Postman Setup:**
+1. Method: POST
+2. URL: `http://localhost:8081/api/bookings`
+3. Headers: Add `Content-Type: application/json` and `X-User-Id` (customer UUID)
+4. Body: Select "raw" and "JSON", paste request body
+5. **Important:** Use a future date for startTime
+6. **Price Calculation:** For 6 hours at $5/hour = $30 = 3000 cents
+7. Click Send
+
+---
+
+### 2. Get All Bookings
+**GET** `/api/bookings`
+
+**Description:** Get all bookings in the system (admin/testing only, should be restricted in production).
+
+**Headers:** None required
+
+**Request Body:** None
+
+**Response (200 OK):**
+```json
+[
+  {
+    "id": "b1b1b1b1-b1b1-b1b1-b1b1-b1b1b1b1b1b1",
+    "user": {
+      "id": "11111111-1111-1111-1111-111111111111",
+      "fullName": "John Doe",
+      "email": "john.doe@email.com"
+    },
+    "location": {
+      "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      "name": "Times Square Luggage Hub",
+      "address": "1560 Broadway"
+    },
+    "startTime": "2025-10-24T00:03:04.964471Z",
+    "endTime": "2025-10-27T00:03:04.964471Z",
+    "priceCents": 7200,
+    "status": "CONFIRMED"
+  },
+  ...
+]
+```
+
+**Postman Setup:**
+1. Method: GET
+2. URL: `http://localhost:8081/api/bookings`
+3. Click Send
+
+---
+
+### 3. Get Booking By ID
+**GET** `/api/bookings/{bookingId}`
+
+**Description:** Get details of a specific booking by its UUID.
+
+**URL Parameters:**
+- `bookingId`: Booking UUID
+
+**Example URL:** `http://localhost:8081/api/bookings/b1b1b1b1-b1b1-b1b1-b1b1-b1b1b1b1b1b1`
+
+**Response (200 OK):** Single booking object
+
+**Postman Setup:**
+1. Method: GET
+2. URL: `http://localhost:8081/api/bookings/b1b1b1b1-b1b1-b1b1-b1b1-b1b1b1b1b1b1`
+3. **Mock Booking IDs you can use:**
+   - `b1b1b1b1-b1b1-b1b1-b1b1-b1b1b1b1b1b1` - John's confirmed booking
+   - `b4b4b4b4-b4b4-b4b4-b4b4-b4b4b4b4b4b4` - Emma's pending booking
+   - `b6b6b6b6-b6b6-b6b6-b6b6-b6b6b6b6b6b6` - Completed booking
+   - `b8b8b8b8-b8b8-b8b8-b8b8-b8b8b8b8b8b8` - Cancelled booking
+4. Click Send
+
+---
+
+### 4. Get My Bookings
+**GET** `/api/bookings/me`
+
+**Description:** Get all bookings for the currently authenticated user.
+
+**Headers:**
+```
+X-User-Id: 11111111-1111-1111-1111-111111111111
+```
+
+**Request Body:** None
+
+**Response (200 OK):** Array of user's bookings
+
+**Postman Setup:**
+1. Method: GET
+2. URL: `http://localhost:8081/api/bookings/me`
+3. Headers: Add `X-User-Id` with user UUID
+4. **Mock User IDs:** John Doe (11111111...) has 3 bookings
+5. Click Send
+
+---
+
+### 5. Get User Bookings By ID
+**GET** `/api/bookings/user/{userId}`
+
+**Description:** Get all bookings for a specific user by their UUID.
+
+**URL Parameters:**
+- `userId`: User UUID
+
+**Example URL:** `http://localhost:8081/api/bookings/user/11111111-1111-1111-1111-111111111111`
+
+**Response (200 OK):** Array of user's bookings
+
+**Postman Setup:**
+1. Method: GET
+2. URL: `http://localhost:8081/api/bookings/user/11111111-1111-1111-1111-111111111111`
+3. Click Send
+
+---
+
+### 6. Update Booking
+**PUT** `/api/bookings/{bookingId}`
+
+**Description:** Update booking details (time, items). Only PENDING bookings can be updated. User can only update their own bookings. Price is automatically recalculated if times change.
+
+**Headers:**
+```
+Content-Type: application/json
+X-User-Id: 11111111-1111-1111-1111-111111111111
+```
+
+**URL Parameters:**
+- `bookingId`: Booking UUID to update
+
+**Request Body:**
+```json
+{
+  "startTime": "2025-12-01T11:00:00Z",
+  "endTime": "2025-12-01T17:00:00Z",
+  "numberOfItems": 3
+}
+```
+
+**Field Descriptions:**
+- `startTime` (optional): New start time (must be in future)
+- `endTime` (optional): New end time (must be after startTime)
+- `numberOfItems` (optional): Updated number of items
+
+**Response (200 OK):** Updated booking with recalculated price
+
+**Postman Setup:**
+1. Method: PUT
+2. URL: `http://localhost:8081/api/bookings/{bookingId}`
+3. Headers: Add `Content-Type: application/json` and `X-User-Id` (must be booking owner)
+4. Body: Select "raw" and "JSON", paste request body (all fields optional)
+5. **Important:** Only works on PENDING bookings
+6. **Price Recalculation:** If you change from 6 hours to 8 hours, price updates automatically
+7. Click Send
+
+---
+
+### 7. Cancel Booking
+**DELETE** `/api/bookings/{bookingId}`
+
+**Description:** Cancel a booking. User can only cancel their own PENDING or CONFIRMED bookings. Cannot cancel COMPLETED bookings.
+
+**Headers:**
+```
+X-User-Id: 11111111-1111-1111-1111-111111111111
+```
+
+**URL Parameters:**
+- `bookingId`: Booking UUID to cancel
+
+**Request Body:** None
+
+**Response (200 OK):**
+```json
+{
+  "message": "Booking cancelled successfully"
+}
+```
+
+**Response (400 Bad Request):**
+```json
+{
+  "error": "Cannot cancel a completed booking"
+}
+```
+
+**Postman Setup:**
+1. Method: DELETE
+2. URL: `http://localhost:8081/api/bookings/{bookingId}`
+3. Headers: Add `X-User-Id` (must be booking owner)
+4. **Important:** User can only cancel their own bookings
+5. Click Send
+
+---
+
+### 8. Confirm Booking (Host Only)
+**PATCH** `/api/bookings/{bookingId}/confirm`
+
+**Description:** Confirm a booking (host only). Changes status from PENDING to CONFIRMED. Only the location owner can confirm bookings.
+
+**Headers:**
+```
+X-User-Id: 55555555-5555-5555-5555-555555555555
+```
+
+**URL Parameters:**
+- `bookingId`: Booking UUID to confirm
+
+**Request Body:** None
+
+**Response (200 OK):** Updated booking with CONFIRMED status
+
+**Postman Setup:**
+1. Method: PATCH
+2. URL: `http://localhost:8081/api/bookings/{bookingId}/confirm`
+3. Headers: Add `X-User-Id` with HOST user ID (must be location owner)
+4. **Mock Host IDs:**
+   - Sarah Johnson (55555555...) owns Times Square & Central Park
+   - Mike Chen (66666666...) owns Eiffel Tower & Louvre
+   - Emma Wilson (77777777...) owns Shibuya & Shinjuku
+   - David Brown (88888888...) owns Kings Cross & Covent Garden
+5. **Important:** Returns 403 Forbidden if X-User-Id is not the location owner
+6. Click Send
+
+---
+
+### 9. Complete Booking (Host Only)
+**PATCH** `/api/bookings/{bookingId}/complete`
+
+**Description:** Mark a booking as complete (host only). Changes status from CONFIRMED to COMPLETED. Usually done after the booking end time has passed.
+
+**Headers:**
+```
+X-User-Id: 55555555-5555-5555-5555-555555555555
+```
+
+**URL Parameters:**
+- `bookingId`: Booking UUID to complete
+
+**Request Body:** None
+
+**Response (200 OK):** Updated booking with COMPLETED status
+
+**Postman Setup:**
+1. Method: PATCH
+2. URL: `http://localhost:8081/api/bookings/{bookingId}/complete`
+3. Headers: Add `X-User-Id` with HOST user ID (must be location owner)
+4. **Important:** Only CONFIRMED bookings can be completed
+5. Click Send
+
+---
+
+### Booking Lifecycle
+
+```
+Customer creates booking → PENDING
+         ↓
+Host confirms booking → CONFIRMED
+         ↓
+Service ends, host marks complete → COMPLETED
+
+Alternative paths:
+PENDING → CANCELLED (customer cancels)
+CONFIRMED → CANCELLED (customer cancels)
+```
+
+### Booking Status Descriptions
+
+- **PENDING** - Booking created, waiting for host confirmation
+- **CONFIRMED** - Host has confirmed the booking
+- **COMPLETED** - Service has been provided and booking is finished
+- **CANCELLED** - Booking was cancelled (by customer)
 
 ---
 
