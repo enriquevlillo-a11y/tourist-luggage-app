@@ -20,38 +20,55 @@ import { useSpotsStore } from "../../stores/spots";
 //TODO: The list of available hosts should be based on the current map location and should be within a specified radius. \
 
 //Pick the correct base url depending on the platform
-function getApiBase () {
-  if (Platform.OS === "android") return "http://10.0.2.2:5432";
-  return "http://localhost:5432";
+function getApiBase() {
+  if (Platform.OS === "android") return "http://10.0.2.2:8081";
+  return "http://localhost:8081";
 }
+
+
+async function fetchLocations() {
+  const base = getApiBase();
+  try {
+    const res = await fetch(`${base}/api/locations`);
+    if (!res.ok) {
+      throw new Error("Failed to fetch locations");
+    }
+    const data = await res.json();
+
+    const normalized = data.map((location: any) => ({
+      id: String(location.id),
+      name: location.name,
+      pricePerHour: Number(location.pricePerHour),
+      address: location.address,
+      rating: Number(location.rating ?? 0),
+      latitude: Number(location.latitude),
+      longitude: Number(location.longitude),
+      reviews: location.reviews ?? [],
+    }));
+
+    useSpotsStore.getState().setSpots(normalized);
+  } catch (error) {
+    console.error("Error fetching locations:", error);
+
+  }
+}
+
 
 export default function Home() {
   const [q, setQ] = useState("");
-  const { spots, setSpots } = useSpotsStore();
+  const { locations: spots } = useSpotsStore();
 
 
-  //Fetch spots from backend when component mounts
-  // and store them in Zustand store
   useEffect(() => {
-    const base = getApiBase();
-    const controller = new AbortController();
-    async function fetchSpots() {
-      try {
-        const res = await fetch(`${base}/api/locations`, {
-          method: "GET",
-          headers: { Accept: "application/json" },
-          signal: controller.signal,
-        });
-        const data = await res.json();
-        setSpots(data); // updates Zustand store
-      } catch (err) {
-        console.error("Failed to fetch spots:", err);
-        console.log({base});
-      }
+    fetchLocations();
+    for (const item of data) {
+      console.log("---- Location ----");
+      Object.entries(item).forEach(([key, value]) => {
+        console.log(`${key}:`, value);
+      });
     }
 
-    fetchSpots();
-  }, [setSpots]); // runs once when Home mounts
+  }, []);
 
   //Filter spots based on search query
   const data = spots.filter(
@@ -80,12 +97,14 @@ export default function Home() {
       <FlatList
         contentContainerStyle={styles.cardList}
         data={data}
-        keyExtractor={(it, idx) => it.id ? String(it.id) : `spot-${idx}`}
+        keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <Link href={`/spot/${item.id}`} asChild>
-            <TouchableOpacity style={styles.card}>
+          <Link href={{pathname: "/spot/[id]", params: {id: String(item.id)}}} asChild>
+            <TouchableOpacity style={styles.card} onPress={() => {
+              console.log(item.id);
+            }}>
               <Text style={{ fontWeight: "700", fontSize: 16 }}>{item.name}</Text>
-              <Text style={{ color: "#6B7280", marginTop: 4 }}>${item.price.toFixed(2)}/h</Text>
+              <Text style={{ color: "#6B7280", marginTop: 4 }}>${item.pricePerHour?.toFixed(2)}/h</Text>
               <Text style={{ color: "#9CA3AF", marginTop: 4 }}>{item.address}</Text>
             </TouchableOpacity>
           </Link>

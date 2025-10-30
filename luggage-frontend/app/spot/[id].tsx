@@ -93,10 +93,26 @@ export function ReserveButton({ id }: { id: number | string }) {
 
 export default function SpotDetail() {
   const pathname = usePathname();
-  const navigation = useNavigation();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const spot = useSpotsStore((s) => s.getById(Number(id)));
-  const [rating, setRating] = useState(spot?.rating ?? 0);
+  const { id } = useLocalSearchParams<{ id?: string }>();
+
+  // Call hooks unconditionally to satisfy the Rules of Hooks.
+  // Use a safe fallback for id when passing to the store selector.
+  const spot = useSpotsStore((s) => s.getById(String(id ?? "")));
+  const [rating, setRating] = useState<number>(spot?.rating ?? 0);
+
+  useEffect(() => {
+    setRating(spot?.rating ?? 0);
+    console.log(pathname);
+  }, [spot?.rating, pathname]);
+
+  if (!id) {
+    console.error("No id provided in route params");
+    return (
+      <View style={{ padding: 16 }}>
+        <Text>No spot selected</Text>
+      </View>
+    );
+  }
 
   if (!spot) {
     return (
@@ -106,15 +122,9 @@ export default function SpotDetail() {
     );
   }
 
-  useEffect(() => {
-    setRating(spot?.rating ?? 0);
-    console.log(pathname);
-
-  }, [spot?.rating]);
-
   const region = {
-    latitude: spot.lat,
-    longitude: spot.long,
+    latitude: spot.latitude,
+    longitude: spot.longitude,
     latitudeDelta: 0.012,  // tighter zoom than default
     longitudeDelta: 0.008,
   };
@@ -124,10 +134,9 @@ export default function SpotDetail() {
       {/* TOP: Map */}
       <View style={styles.mapWrapper}>
         <MapView style={styles.map} initialRegion={region}>
-          <Marker coordinate={{ latitude: spot.lat, longitude: spot.long }} title={spot.name} />
+          <Marker coordinate={{ latitude: spot.latitude, longitude: spot.longitude }} title={spot.name} />
         </MapView>
       </View>
-
 
       <LinearGradient
         colors={["#F8FAFC", "#4288ceff"]}
@@ -156,8 +165,8 @@ export default function SpotDetail() {
           <View style={styles.ctaCol}>
             <ReserveButton id={spot.id} />
             <Text style={styles.priceText}>
-              ${spot.price}
-              <Text style={styles.priceUnit}> /day</Text>
+              ${spot.pricePerHour}
+              <Text style={styles.priceUnit}> /hour</Text>
             </Text>
           </View>
         </View>
@@ -181,7 +190,7 @@ export default function SpotDetail() {
           renderItem={({ item }) => (
             <View style={{ paddingVertical: 8 }}>
               <Text style={styles.sectionText}>
-                {item?.comment ?? item?.comment ?? String(item)}
+                {item?.comment ?? String(item)}
               </Text>
               <Text style={{ fontSize: 13, color: "#6b7280", marginTop: 4 }}>
                 {item?.user ? `— ${item.user}` : null}
