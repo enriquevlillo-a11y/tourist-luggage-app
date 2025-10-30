@@ -1,6 +1,7 @@
 {
   "expo": {
     "name": "luggage-frontend",
+    "scheme": "luggo",
     "slug": "luggage-frontend",
     "version": "1.0.0",
     "orientation": "portrait",

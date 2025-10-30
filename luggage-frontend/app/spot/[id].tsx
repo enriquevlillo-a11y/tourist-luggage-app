@@ -70,19 +70,49 @@
  *   returned by `useSpotsStore().getById(42)`.
  */
 // SpotDetail.tsx
-import { useLocalSearchParams, useNavigation } from "expo-router";
-import { View, Text, Button, StyleSheet, ScrollView, FlatList } from "react-native";
+import { Link, useLocalSearchParams, useNavigation, usePathname } from "expo-router";
+import { View, Text, Button, StyleSheet, FlatList, TouchableOpacity } from "react-native";
 import { useEffect, useState } from "react";
 import { useSpotsStore } from "../../stores/spots";
 import StarRating from "react-native-star-rating-widget";
 import { LinearGradient } from "expo-linear-gradient";
 import MapView, { Marker } from "react-native-maps";
+import { useRouter } from "expo-router";
+
+
+export function ReserveButton({ id }: { id: number | string }) {
+  const router = useRouter();
+  return (
+    <Link href={`/(modals)/reserve?spotId=${id}`} asChild>
+      <TouchableOpacity style={styles.ctaCol}>
+        <Text style={styles.button}>Reserve</Text>
+      </TouchableOpacity>
+    </Link>
+  );
+}
 
 export default function SpotDetail() {
-  const navigation = useNavigation();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const spot = useSpotsStore((s) => s.getById(Number(id)));
-  const [rating, setRating] = useState(spot?.rating ?? 0);
+  const pathname = usePathname();
+  const { id } = useLocalSearchParams<{ id?: string }>();
+
+  // Call hooks unconditionally to satisfy the Rules of Hooks.
+  // Use a safe fallback for id when passing to the store selector.
+  const spot = useSpotsStore((s) => s.getById(String(id ?? "")));
+  const [rating, setRating] = useState<number>(spot?.rating ?? 0);
+
+  useEffect(() => {
+    setRating(spot?.rating ?? 0);
+    console.log(pathname);
+  }, [spot?.rating, pathname]);
+
+  if (!id) {
+    console.error("No id provided in route params");
+    return (
+      <View style={{ padding: 16 }}>
+        <Text>No spot selected</Text>
+      </View>
+    );
+  }
 
   if (!spot) {
     return (
@@ -92,17 +122,9 @@ export default function SpotDetail() {
     );
   }
 
-  useEffect(() => {
-    setRating(spot?.rating ?? 0);
-  }, [spot?.rating]);
-
-  useEffect(() => {
-    navigation.setOptions({ title: "Reserve Spot" });
-  }, [navigation]);
-
   const region = {
-    latitude: spot.lat,
-    longitude: spot.long,
+    latitude: spot.latitude,
+    longitude: spot.longitude,
     latitudeDelta: 0.012,  // tighter zoom than default
     longitudeDelta: 0.008,
   };
@@ -112,64 +134,63 @@ export default function SpotDetail() {
       {/* TOP: Map */}
       <View style={styles.mapWrapper}>
         <MapView style={styles.map} initialRegion={region}>
-          <Marker coordinate={{ latitude: spot.lat, longitude: spot.long }} title={spot.name} />
+          <Marker coordinate={{ latitude: spot.latitude, longitude: spot.longitude }} title={spot.name} />
         </MapView>
       </View>
 
+      <LinearGradient
+        colors={["#F8FAFC", "#4288ceff"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={styles.card}
+      >
+        {/* Header row */}
+        <View style={styles.headerRow}>
+          {/* Left: Name + Rating */}
+          <View style={styles.leftCol}>
+            <Text style={styles.reserveSpotTitle}>{spot.name}</Text>
 
-        <LinearGradient
-          colors={["#F8FAFC", "#4288ceff"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={styles.card}
-        >
-          {/* Header row */}
-          <View style={styles.headerRow}>
-            {/* Left: Name + Rating */}
-            <View style={styles.leftCol}>
-              <Text style={styles.reserveSpotTitle}>{spot.name}</Text>
-
-              <View style={styles.ratingRow}>
-                <StarRating
-                  starSize={22}
-                  rating={rating}
-                  onChange={setRating}
-                  enableHalfStar
-                />
-                <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
-              </View>
-            </View>
-
-            {/* Right: Book + Price underneath */}
-            <View style={styles.ctaCol}>
-              <Button title="Book" onPress={() => { /* your action */ }} />
-              <Text style={styles.priceText}>
-                ${spot.price}
-                <Text style={styles.priceUnit}> /day</Text>
-              </Text>
+            <View style={styles.ratingRow}>
+              <StarRating
+                starSize={22}
+                rating={rating}
+                onChange={setRating}
+                enableHalfStar
+              />
+              <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
             </View>
           </View>
 
-          {/* Address / details */}
-          <View style={styles.details}>
-            <Text style={styles.subtleLabel}>Address</Text>
-            <Text style={styles.address}>{spot.address}</Text>
+          {/* Right: Book + Price underneath */}
+          <View style={styles.ctaCol}>
+            <ReserveButton id={spot.id} />
+            <Text style={styles.priceText}>
+              ${spot.pricePerHour}
+              <Text style={styles.priceUnit}> /hour</Text>
+            </Text>
           </View>
+        </View>
 
-          {/* Hours block (example) */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Hours of Operation</Text>
-            <Text style={styles.sectionText}>Mon–Sun · 8:00 AM – 10:00 PM</Text>
-          </View>
+        {/* Address / details */}
+        <View style={styles.details}>
+          <Text style={styles.subtleLabel}>Address</Text>
+          <Text style={styles.address}>{spot.address}</Text>
+        </View>
 
-          {/* Add more sections here... */}
-          <Text style={styles.sectionTitle}>Reviews</Text>
+        {/* Hours block (example) */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Hours of Operation</Text>
+          <Text style={styles.sectionText}>Mon–Sun · 8:00 AM – 10:00 PM</Text>
+        </View>
+
+        {/* Add more sections here... */}
+        <Text style={styles.sectionTitle}>Reviews</Text>
         <FlatList
           data={spot.reviews ?? []}
           renderItem={({ item }) => (
             <View style={{ paddingVertical: 8 }}>
               <Text style={styles.sectionText}>
-                {item?.comment ?? item?.comment ?? String(item)}
+                {item?.comment ?? String(item)}
               </Text>
               <Text style={{ fontSize: 13, color: "#6b7280", marginTop: 4 }}>
                 {item?.user ? `— ${item.user}` : null}
@@ -179,10 +200,10 @@ export default function SpotDetail() {
           )}
           keyExtractor={(item, index) => (item?.id ? String(item.id) : String(index))}
         />
-        </LinearGradient>
+      </LinearGradient>
 
-        {/* Spacer so it feels breathable when scrolled to bottom */}
-        <View style={{ height: 24 }} />
+      {/* Spacer so it feels breathable when scrolled to bottom */}
+      <View style={{ height: 24 }} />
     </View>
   );
 }
@@ -212,6 +233,18 @@ const styles = StyleSheet.create({
   },
 
   // CARD
+  button: {
+    backgroundColor: "#678bd8ff",          // blue-600
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,                        // Android shadow
+    alignItems: "center",
+  },
   card: {
     borderRadius: 16,
     padding: 16,

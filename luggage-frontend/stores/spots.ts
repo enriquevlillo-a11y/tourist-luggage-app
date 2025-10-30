@@ -3,7 +3,7 @@
 //This includes functions to set spots, get a spot by its ID, and add reviews to a spot.
 
 import {create} from "zustand";
-import { MOCK_SPOTS } from "../app/data/mockSpots";
+import { MOCK_SPOTS } from "../data/mockSpots";
 
 export type Review = {
     id: string;
@@ -13,22 +13,22 @@ export type Review = {
     createdAt: string //Iso
 }
 
-export type Spot = {
-    id: number; 
+export type Location = {
+    id: string; //Changed to a string to match backend UUIDs 
     name: string; 
-    price: number; 
+    pricePerHour: number; 
     address: string; 
     rating: number, 
-    lat: number, 
-    long: number, 
+    latitude: number, 
+    longitude: number, 
     reviews: Review[]};
 
 type State = {
-    spots: Spot[];
-    setSpots: (spots: Spot[]) => void;
-    getById: (id: number) => Spot | undefined;
-    addReview: (spotId: number, review: Review) => void;
-    
+    locations: Location[];
+    setSpots: (locations: Location[]) => void;
+    getById: (id: string) => Location | undefined;
+    addReview: (locationId: string, review: Review) => void;
+
 };
 
 
@@ -41,16 +41,16 @@ function averageStars(reviews: Review[]): number {
 
 export const useSpotsStore = create<State>((set, get) => ({
   // In dev mode, initialize with mock data, otherwise start empty
-    spots: __DEV__ ? MOCK_SPOTS : [],
-    setSpots: (spots) => set({spots}),
-    getById: (id) => get().spots.find((s) => s.id === id),
-    addReview: (spotId, review) =>
+    locations: (typeof __DEV__ !== "undefined" && __DEV__) || process.env.NODE_ENV === "development" ? MOCK_SPOTS : [],
+    setSpots: (locations) => set({ locations }),
+    getById: (id) => get().locations.find((s) => s.id === id),
+    addReview: (locationId, review) =>
                   set((state) => {
-            const spots = state.spots.map((s) => {
-              if (s.id !== spotId) return s;
+            const spots = state.locations.map((s) => {
+              if (s.id !== locationId) return s;
               const reviews = [...s.reviews, review];
               return { ...s, reviews, rating: averageStars(reviews) };
             });
-            return { spots };
+            return { locations: spots };
           }),
 }));

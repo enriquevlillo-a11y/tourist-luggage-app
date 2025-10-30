@@ -28,6 +28,7 @@
           <Stack.Screen
             name="(tabs)"
           />
+        <Stack.Screen name = "spot" />
 
         </Stack>
       </SafeAreaProvider>
