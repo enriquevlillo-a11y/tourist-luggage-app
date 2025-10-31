@@ -3,7 +3,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import googleIcon from "../../assets/google.svg"
 import facebookIcon from "../../assets/facebook.svg"
 import LoginImg from "../../assets/AccountLogo.png";
-import MaterialIcons from "react-native-vector-icons/MaterialIcons"; //Default icons from react to get @
+import MaterialIcons from "react-native-vector-icons/MaterialIcons"; {/*Default icons from react to get @*/}
 import Ionicons from "react-native-vector-icons/Ionicons"; 
 export default function Account() {
   return (
