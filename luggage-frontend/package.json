@@ -6,7 +6,11 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "dev:db": "docker compose -f ../luggage-backend/luggage-backend/docker-compose.yml up", 
+    "dev:api": "cd ../luggage-backend/luggage-backend && .\\mvnw.cmd spring-boot:run",
+    "dev:app": "expo start --android",
+    "dev": "concurrently -k -n DB,API,APP -c cyan,magenta,green \"npm run dev:db\" \"npm run dev:api\" \"npm run dev:app\""
   },
   "dependencies": {
     "babel-preset-expo": "^54.0.6",
@@ -30,6 +34,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
+    "concurrently": "^9.2.1",
     "typescript": "~5.9.2"
   },
   "private": true
