@@ -21,8 +21,8 @@ import { useSpotsStore } from "../../stores/spots";
 
 //Pick the correct base url depending on the platform
 function getApiBase() {
-  if (Platform.OS === "android") return "http://10.0.2.2:8081";
-  return "http://localhost:8081";
+  if (Platform.OS === "android") return "http://10.0.2.2:8082";
+  return "http://localhost:8082";
 }
 
 
