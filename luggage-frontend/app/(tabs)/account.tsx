@@ -1,19 +1,23 @@
-import { View, Text, Image, TextInput,TouchableOpacity } from "react-native";
+import { View, Text, Image, TextInput,TouchableOpacity, ScrollView} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import googleIcon from "../../assets/google.svg"
-import facebookIcon from "../../assets/facebook.svg"
-import LoginImg from "../../assets/AccountLogo.png";
+import { useRouter } from "expo-router"; {/*Navigate through screens*/}
+import GoogleIcon from "../../assets/google.svg"
+import FacebookIcon from "../../assets/facebook.svg"
+import LuggoPNG from "../../assets/Luggo.png";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons"; {/*Default icons from react to get @*/}
 import Ionicons from "react-native-vector-icons/Ionicons"; 
+
+
 export default function Account() {
+  const router = useRouter();
   return (
     <SafeAreaView style={{flex:1, justifyContent: 'center'}}> 
     <View style={{ paddingHorizontal:25 }}>
     <View style={{alignItems:"center"}}>
 
       <Image 
-        source={LoginImg} 
-        style={{ width: 200, height: 200, marginBottom: 100 }}
+        source={LuggoPNG} 
+        style={{ width: 200, height: 200, marginBottom: 30 }}
         resizeMode="contain"
       />
       </View>
@@ -33,10 +37,10 @@ export default function Account() {
           color= "#666"
           style = {{marginRight:5}}
          />
+         {/*PaddingVertical for Android Users, so the background color doesnt combine with the @*/}
         <TextInput
           placeholder = 'Email ID' 
           style={{ flex:1, paddingVertical:0}}
-          //PaddingVertical for Android Users, so the background color doesnt combine with the @
           keyboardType="email-address"
         /> 
       </View>
@@ -77,13 +81,47 @@ export default function Account() {
         <Text style={{textAlign:'center',fontWeight: '700', fontSize:16, color: '#fff'}}>Login</Text>
       </TouchableOpacity>
       
-      //Logging in with social media accounts.
+      {/*Logging in with Social Media Accounts*/}
       <Text style= {{textAlign: 'center', color: '#666', marginBottom: 30 }}>
         Or login with...
         </Text>
+
+        <View style={{flexDirection:'row', justifyContent: 'space-around', marginBottom: 30,}}>
         
+        <TouchableOpacity 
+        onPress = {() => {}}
+        style ={{borderColor: '#ddd',
+        borderWidth: 2, 
+        borderRadius: 10,
+        paddingHorizontal: 30,
+        paddingVertical: 10,}}>
+
+          <GoogleIcon height= {24} width= {24} />
+
+        </TouchableOpacity>
+          <TouchableOpacity 
+        onPress = {() => {}}
+        style ={{borderColor: '#ddd',
+        borderWidth: 2, 
+        borderRadius: 10,
+        paddingHorizontal: 30,
+        paddingVertical: 10,}}>
+
+          <FacebookIcon height= {24} width= {24} />
+
+        </TouchableOpacity>
+        </View>
+
+        <View style={{flexDirection: 'row', justifyContent: 'center', marginBottom: 30}}>
+        <Text> New Member? </Text>
+        
+        <TouchableOpacity onPress = {() => router.push('/registrationPage')}>
+           <Text style={{color: '#0e0c6d99', fontWeight: '700',}}> Register Here </Text>
+
+        </TouchableOpacity>
+       </View>
 
     </View>
     </SafeAreaView>
   );
-}
+};
