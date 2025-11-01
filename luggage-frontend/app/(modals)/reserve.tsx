@@ -11,7 +11,6 @@ import { useState } from "react";
 export default function TemplateModal() {
   const router = useRouter();
   
-  const [selected, setSelected] = useState('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
 
