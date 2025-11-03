@@ -1,30 +1,62 @@
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { useRouter } from "expo-router";
+import { View, Text, StyleSheet, TouchableOpacity, Switch, useWindowDimensions } from "react-native";
 import {
   SafeAreaView,
   SafeAreaProvider,
 } from 'react-native-safe-area-context';
 
-import { Calendar, CalendarList, Agenda, ExpandableCalendar } from "react-native-calendars";
+import { Calendar } from "react-native-calendars";
 import { useState } from "react";
+import { useSpotsStore } from "../../stores/spots";
+import { useLocalSearchParams } from "expo-router";
 
+//TODO: Is it price per hour or per day?
+
+
+export function ModeSwitch({ mode, setMode }: { mode: "hourly" | "daily", setMode: (m: "hourly" | "daily") => void }) {
+  const { width } = useWindowDimensions();
+  return (
+    <View style={[styles.container, ]}>
+      <TouchableOpacity
+        style={[styles.option, mode === "daily" && styles.active]}
+        onPress={() => setMode("daily")}
+      >
+        <Text style={[styles.label, mode === "daily" && styles.activeLabel]}>Daily</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.option, mode === "hourly" && styles.active]}
+        onPress={() => setMode("hourly")}
+      >
+        <Text style={[styles.label, mode === "hourly" && styles.activeLabel]}>Hourly</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
 export default function TemplateModal() {
-  const router = useRouter();
-  
+
+  const { locationId } = useLocalSearchParams<{ locationId: string }>();
+  const location = useSpotsStore(s => s.getById(String(locationId)));
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [mode, setMode] = useState<"hourly" | "daily">("hourly");
 
+
+  if (!location) {
+    return (
+      <Text>Location not found</Text>
+    )
+  }
 
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.container}>
-
+        <ModeSwitch mode={mode} setMode={setMode} />
         {/* Header */}
         <Calendar onDayPress={day => {
-          if(!fromDate || (fromDate && toDate)) {
+          if (!fromDate || (fromDate && toDate)) {
             setFromDate(day.dateString);
             setToDate('');
-          }else if (fromDate && !toDate) {
+          } else if (fromDate && !toDate) {
             if (day.dateString > fromDate) {
               setToDate(day.dateString);
             } else {
@@ -34,7 +66,7 @@ export default function TemplateModal() {
             }
           }
           console.log('selected day', day);
-          console.log({fromDate, toDate});
+          console.log({ fromDate, toDate });
         }}
           markingType={'period'}
           markedDates={
@@ -77,8 +109,12 @@ export default function TemplateModal() {
         />
 
         {/* Body */}
-        <View style={styles.body}>
-          <Text style={styles.text}>This is where the prices will be displayed.</Text>
+        <View style={styles.priceContainer}>
+          <View style={styles.row}>
+            <Text style={styles.text}>Price Per Day:</Text>
+            <Text style={styles.text}>${location.pricePerHour?.toFixed(2)}</Text>
+
+          </View>
         </View>
 
         {/* Footer / Buttons */}
@@ -103,6 +139,46 @@ export default function TemplateModal() {
 }
 
 const styles = StyleSheet.create({
+  option: {
+    flex: 1,
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  active: {
+    backgroundColor: "#705b91ff",
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#374151",
+  },
+  activeLabel: {
+    color: "#ffffffff",
+  },
+  ModeSwitchContainer: {
+    flexDirection: "row",
+    borderRadius: 999,
+    backgroundColor: "#4d5566ff",
+    alignSelf: "center",
+    overflow: "hidden",
+  },
+  switchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  priceContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 20,
+    marginVertical: 16,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 6,
+    elevation: 3,
+  },
   container: {
     flex: 1,
     justifyContent: "center",
@@ -119,12 +195,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   text: {
-    color: "#6b7280",
+    color: "#000000ff",
+    fontSize: 16,
   },
   footer: {
     flexDirection: "column",
     justifyContent: "space-between",
     padding: 16,
+  },
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginVertical: 6,
   },
   button: {
     padding: 12,

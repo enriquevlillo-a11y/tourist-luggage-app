@@ -83,7 +83,7 @@ import { useRouter } from "expo-router";
 export function ReserveButton({ id }: { id: number | string }) {
   const router = useRouter();
   return (
-    <Link href={`/(modals)/reserve?spotId=${id}`} asChild>
+    <Link href={`/(modals)/reserve?locationId=${id}`} asChild>
       <TouchableOpacity style={styles.ctaCol}>
         <Text style={styles.button}>Reserve</Text>
       </TouchableOpacity>
