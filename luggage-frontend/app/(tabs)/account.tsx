@@ -1,127 +1,170 @@
-import { View, Text, Image, TextInput,TouchableOpacity, ScrollView} from "react-native";
+import React from "react";
+import {
+  View,
+  Text,
+  Image,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router"; {/*Navigate through screens*/}
-import GoogleIcon from "../../assets/google.svg"
-import FacebookIcon from "../../assets/facebook.svg"
+import { useRouter } from "expo-router";
+import GoogleIcon from "../../assets/google.svg";
+import FacebookIcon from "../../assets/facebook.svg";
 import LuggoPNG from "../../assets/Luggo.png";
-import MaterialIcons from "react-native-vector-icons/MaterialIcons"; {/*Default icons from react to get @*/}
-import Ionicons from "react-native-vector-icons/Ionicons"; 
-
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 
 export default function Account() {
   const router = useRouter();
+
   return (
-    <SafeAreaView style={{flex:1, justifyContent: 'center'}}> 
-    <View style={{ paddingHorizontal:25 }}>
-    <View style={{alignItems:"center"}}>
-
-      <Image 
-        source={LuggoPNG} 
-        style={{ width: 200, height: 200, marginBottom: 30 }}
-        resizeMode="contain"
-      />
-      </View>
-
-      <Text style={{ fontSize:22, fontWeight:"500", color: '#333',marginBottom: 30, }}>Account</Text>
-
-      <View 
-        style={{
-          flexDirection: 'row', 
-          borderBottomColor: '#ccc', 
-          borderBottomWidth:1, 
-          paddingBottom:8,
-          marginBottom:25,}} >
-        <MaterialIcons
-          name='alternate-email'
-          size={20}
-          color= "#666"
-          style = {{marginRight:5}}
-         />
-         {/*PaddingVertical for Android Users, so the background color doesnt combine with the @*/}
-        <TextInput
-          placeholder = 'Email ID' 
-          style={{ flex:1, paddingVertical:0}}
-          keyboardType="email-address"
-        /> 
-      </View>
-
-       <View 
-        style={{
-          flexDirection: 'row', 
-          borderBottomColor: '#ccc', 
-          borderBottomWidth:1, 
-          paddingBottom:8,
-          marginBottom:25,}} >
-        <Ionicons
-          name= "lock-closed-outline"
-          size={20}
-          color= "#666"
-          style = {{marginRight:5}}
-         />
-        <TextInput
-          placeholder = "Password"
-          style={{ flex:1, paddingVertical:0}}
-          secureTextEntry={true}
-         
-        /> 
-        <TouchableOpacity onPress ={ () => {} }>
-          <Text style ={{color: '#0e0c6d81', fontWeight: '700' }}>Forgot Password</Text>
-        </TouchableOpacity>
-
-      </View>
-      <TouchableOpacity
-
-      onPress ={ () => {} } 
-      style={{
-      backgroundColor: '#0e0c6d99', 
-      padding: 20, 
-      borderRadius: 10, 
-      marginBottom: 30,
-      }}>
-        <Text style={{textAlign:'center',fontWeight: '700', fontSize:16, color: '#fff'}}>Login</Text>
-      </TouchableOpacity>
-      
-      {/*Logging in with Social Media Accounts*/}
-      <Text style= {{textAlign: 'center', color: '#666', marginBottom: 30 }}>
-        Or login with...
-        </Text>
-
-        <View style={{flexDirection:'row', justifyContent: 'space-around', marginBottom: 30,}}>
-        
-        <TouchableOpacity 
-        onPress = {() => {}}
-        style ={{borderColor: '#ddd',
-        borderWidth: 2, 
-        borderRadius: 10,
-        paddingHorizontal: 30,
-        paddingVertical: 10,}}>
-
-          <GoogleIcon height= {24} width= {24} />
-
-        </TouchableOpacity>
-          <TouchableOpacity 
-        onPress = {() => {}}
-        style ={{borderColor: '#ddd',
-        borderWidth: 2, 
-        borderRadius: 10,
-        paddingHorizontal: 30,
-        paddingVertical: 10,}}>
-
-          <FacebookIcon height= {24} width= {24} />
-
-        </TouchableOpacity>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.innerContainer}>
+        <View style={styles.imageContainer}>
+          <Image source={LuggoPNG} style={styles.logo} resizeMode="contain" />
         </View>
 
-        <View style={{flexDirection: 'row', justifyContent: 'center', marginBottom: 30}}>
-        <Text> New Member? </Text>
-        
-        <TouchableOpacity onPress = {() => router.push('/registrationPage')}>
-           <Text style={{color: '#0e0c6d99', fontWeight: '700',}}> Register Here </Text>
+        <Text style={styles.title}>Account</Text>
 
+        {/* Email Input */}
+        <View style={styles.inputContainer}>
+          <MaterialIcons
+            name="alternate-email"
+            size={20}
+            color="#666"
+            style={styles.icon}
+          />
+          <TextInput
+            placeholder="Email ID"
+            style={styles.textInput}
+            keyboardType="email-address"
+          />
+        </View>
+
+        {/* Password Input */}
+        <View style={styles.inputContainer}>
+          <Ionicons
+            name="lock-closed-outline"
+            size={20}
+            color="#666"
+            style={styles.icon}
+          />
+          <TextInput
+            placeholder="Password"
+            style={styles.textInput}
+            secureTextEntry
+          />
+          <TouchableOpacity onPress={() => {}}>
+            <Text style={styles.forgotPassword}>Forgot Password</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Login Button */}
+        <TouchableOpacity onPress={() => {}} style={styles.loginButton}>
+          <Text style={styles.loginText}>Login</Text>
         </TouchableOpacity>
-       </View>
 
-    </View>
+        {/* Social Login */}
+        <Text style={styles.orText}>Or login with...</Text>
+
+        <View style={styles.socialContainer}>
+          <TouchableOpacity style={styles.socialButton} onPress={() => {}}>
+            <GoogleIcon height={24} width={24} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.socialButton} onPress={() => {}}>
+            <FacebookIcon height={24} width={24} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Registration Link */}
+        <View style={styles.registerContainer}>
+          <Text>New Member?</Text>
+          <TouchableOpacity onPress={() => router.push("/registrationPage")}>
+            <Text style={styles.registerLink}> Register Here </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </SafeAreaView>
   );
-};
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  innerContainer: {
+    paddingHorizontal: 25,
+  },
+  imageContainer: {
+    alignItems: "center",
+  },
+  logo: {
+    width: 200,
+    height: 200,
+    marginBottom: 30,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: "500",
+    color: "#333",
+    marginBottom: 30,
+  },
+  inputContainer: {
+    flexDirection: "row",
+    borderBottomColor: "#ccc",
+    borderBottomWidth: 1,
+    paddingBottom: 8,
+    marginBottom: 25,
+    alignItems: "center",
+  },
+  icon: {
+    marginRight: 5,
+  },
+  textInput: {
+    flex: 1,
+    paddingVertical: 0,
+  },
+  forgotPassword: {
+    color: "#0e0c6d81",
+    fontWeight: "700",
+  },
+  loginButton: {
+    backgroundColor: "#0e0c6d99",
+    padding: 20,
+    borderRadius: 10,
+    marginBottom: 30,
+  },
+  loginText: {
+    textAlign: "center",
+    fontWeight: "700",
+    fontSize: 16,
+    color: "#fff",
+  },
+  orText: {
+    textAlign: "center",
+    color: "#666",
+    marginBottom: 30,
+  },
+  socialContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginBottom: 30,
+  },
+  socialButton: {
+    borderColor: "#ddd",
+    borderWidth: 2,
+    borderRadius: 10,
+    paddingHorizontal: 30,
+    paddingVertical: 10,
+  },
+  registerContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginBottom: 30,
+  },
+  registerLink: {
+    color: "#0e0c6d99",
+    fontWeight: "700",
+  },
+});
