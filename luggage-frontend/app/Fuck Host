@@ -1,0 +1,112 @@
+// ...existing code...
+import React, { useCallback, useEffect, useState } from "react";
+import { View, Text, FlatList, Button, ActivityIndicator, StyleSheet } from "react-native";
+import { Stack } from "expo-router";
+
+type Host = {
+    id: string;
+    name: string;
+    url: string;
+    status?: "up" | "down" | "unknown";
+};
+
+const API_URL = "http://localhost:3000/api/hosts"; // <-- replace with your host/service endpoint (or use LAN IP)
+
+export default function HostAvailabilityScreen() {
+    const [hosts, setHosts] = useState<Host[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [checking, setChecking] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const loadHosts = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const res = await fetch(API_URL);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data: Host[] = await res.json();
+            setHosts(data.map(h => ({ ...h, status: "unknown" })));
+        } catch (e: any) {
+            setError(e.message ?? "Failed to load hosts");
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    const checkAll = useCallback(async () => {
+        setChecking(true);
+        try {
+            const results = await Promise.all(
+                hosts.map(async h => {
+                    try {
+                        // simple fetch to host url; adjust method/path if your service provides health endpoint
+                        const r = await fetch(h.url, { method: "GET" });
+                        return { id: h.id, status: r.ok ? "up" : "down" } as const;
+                    } catch {
+                        return { id: h.id, status: "down" } as const;
+                    }
+                })
+            );
+            setHosts(prev => prev.map(h => ({ ...h, status: results.find(r => r.id === h.id)?.status ?? "down" })));
+        } finally {
+            setChecking(false);
+        }
+    }, [hosts]);
+
+    useEffect(() => {
+        loadHosts();
+    }, [loadHosts]);
+
+    if (loading) {
+        return (
+            <View style={styles.center}>
+                <ActivityIndicator size="large" />
+                <Text style={styles.small}>Loading hosts…</Text>
+            </View>
+        );
+    }
+
+    return (
+        <View style={styles.container}>
+            <Stack.Screen options={{ title: "Host Availability" }} />
+            <View style={styles.header}>
+                <Button title="Refresh list" onPress={loadHosts} />
+                <Button title={checking ? "Checking…" : "Check all"} onPress={checkAll} disabled={checking || hosts.length === 0} />
+            </View>
+
+            {error ? <Text style={styles.error}>Error: {error}</Text> : null}
+
+            <FlatList
+                data={hosts}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                    <View style={styles.row}>
+                        <View>
+                            <Text style={styles.name}>{item.name}</Text>
+                            <Text style={styles.url}>{item.url}</Text>
+                        </View>
+                        <Text style={[styles.status, item.status === "up" ? styles.up : styles.down]}>
+                            {item.status ?? "unknown"}
+                        </Text>
+                    </View>
+                )}
+                ListEmptyComponent={<Text style={styles.small}>No hosts configured.</Text>}
+            />
+        </View>
+    );
+}
+
+const styles = StyleSheet.create({
+    container: { flex: 1, padding: 16, backgroundColor: "#fff" },
+    center: { flex: 1, alignItems: "center", justifyContent: "center" },
+    header: { flexDirection: "row", justifyContent: "space-between", marginBottom: 12 },
+    row: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "#eee" },
+    name: { fontSize: 16, fontWeight: "600" },
+    url: { fontSize: 12, color: "#666" },
+    status: { alignSelf: "center", paddingHorizontal: 8, textTransform: "uppercase", fontWeight: "700" },
+    up: { color: "green" },
+    down: { color: "red" },
+    small: { color: "#666", marginTop: 8 },
+    error: { color: "red", marginVertical: 8 },
+});
+// ...existing code...
