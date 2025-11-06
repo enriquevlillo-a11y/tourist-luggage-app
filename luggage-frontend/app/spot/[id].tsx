@@ -202,8 +202,6 @@ export default function SpotDetail() {
         />
       </LinearGradient>
 
-      {/* Spacer so it feels breathable when scrolled to bottom */}
-      <View style={{ height: 24 }} />
     </View>
   );
 }
@@ -252,7 +250,6 @@ const styles = StyleSheet.create({
     shadowColor: "#000",
     shadowOpacity: 0.05,
     shadowRadius: 8,
-    elevation: 3,
   },
 
   headerRow: {
