@@ -7,25 +7,28 @@
 -- Note: created_at and updated_at are handled by @PrePersist/@PreUpdate
 
 -- Customers (USER role)
+-- Password: password123 (BCrypt hashed)
 INSERT INTO users (id, email, password_hash, full_name, role)
 VALUES
-    ('11111111-1111-1111-1111-111111111111', 'john.doe@email.com', 'password123', 'John Doe', 'USER'),
-    ('22222222-2222-2222-2222-222222222222', 'sarah.wilson@email.com', 'password123', 'Sarah Wilson', 'USER'),
-    ('33333333-3333-3333-3333-333333333333', 'mike.chen@email.com', 'password123', 'Mike Chen', 'USER'),
-    ('44444444-4444-4444-4444-444444444444', 'emma.brown@email.com', 'password123', 'Emma Brown', 'USER');
+    ('11111111-1111-1111-1111-111111111111', 'john.doe@email.com', '$2a$10$yEJAp.RiVNMR6dC2F7ewKOuauyjaI5bDVh3WCxpharyYS1e4UNnwe', 'John Doe', 'USER'),
+    ('22222222-2222-2222-2222-222222222222', 'sarah.wilson@email.com', '$2a$10$yEJAp.RiVNMR6dC2F7ewKOuauyjaI5bDVh3WCxpharyYS1e4UNnwe', 'Sarah Wilson', 'USER'),
+    ('33333333-3333-3333-3333-333333333333', 'mike.chen@email.com', '$2a$10$yEJAp.RiVNMR6dC2F7ewKOuauyjaI5bDVh3WCxpharyYS1e4UNnwe', 'Mike Chen', 'USER'),
+    ('44444444-4444-4444-4444-444444444444', 'emma.brown@email.com', '$2a$10$yEJAp.RiVNMR6dC2F7ewKOuauyjaI5bDVh3WCxpharyYS1e4UNnwe', 'Emma Brown', 'USER');
 
 -- Hosts (HOST role)
+-- Password: password123 (BCrypt hashed)
 INSERT INTO users (id, email, password_hash, full_name, role)
 VALUES
-    ('55555555-5555-5555-5555-555555555555', 'maria.garcia@hotel.com', 'password123', 'Maria Garcia', 'HOST'),
-    ('66666666-6666-6666-6666-666666666666', 'david.kim@hostel.com', 'password123', 'David Kim', 'HOST'),
-    ('77777777-7777-7777-7777-777777777777', 'lisa.anderson@cafe.com', 'password123', 'Lisa Anderson', 'HOST'),
-    ('88888888-8888-8888-8888-888888888888', 'james.murphy@shop.com', 'password123', 'James Murphy', 'HOST');
+    ('55555555-5555-5555-5555-555555555555', 'maria.garcia@hotel.com', '$2a$10$yEJAp.RiVNMR6dC2F7ewKOuauyjaI5bDVh3WCxpharyYS1e4UNnwe', 'Maria Garcia', 'HOST'),
+    ('66666666-6666-6666-6666-666666666666', 'david.kim@hostel.com', '$2a$10$yEJAp.RiVNMR6dC2F7ewKOuauyjaI5bDVh3WCxpharyYS1e4UNnwe', 'David Kim', 'HOST'),
+    ('77777777-7777-7777-7777-777777777777', 'lisa.anderson@cafe.com', '$2a$10$yEJAp.RiVNMR6dC2F7ewKOuauyjaI5bDVh3WCxpharyYS1e4UNnwe', 'Lisa Anderson', 'HOST'),
+    ('88888888-8888-8888-8888-888888888888', 'james.murphy@shop.com', '$2a$10$yEJAp.RiVNMR6dC2F7ewKOuauyjaI5bDVh3WCxpharyYS1e4UNnwe', 'James Murphy', 'HOST');
 
 -- Admin (ADMIN role)
+-- Password: admin123 (BCrypt hashed)
 INSERT INTO users (id, email, password_hash, full_name, role)
 VALUES
-    ('99999999-9999-9999-9999-999999999999', 'admin@luggage.com', 'admin123', 'System Admin', 'ADMIN');
+    ('99999999-9999-9999-9999-999999999999', 'admin@luggage.com', '$2a$10$tgwjh7CCy5jjA8XjcO6Vv.hlkfpQQz0YGRXAhN9wd0JvHSbNbptH2', 'System Admin', 'ADMIN');
 
 -- ========================================
 -- LOCATIONS

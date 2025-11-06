@@ -31,3 +31,45 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Security & Environment Variables ###
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+*.p12
+*.jks
+*.keystore
+secrets/
+credentials/
+*.secret
+
+### Logs ###
+*.log
+logs/
+*.log.*
+
+### Database ###
+*.db
+*.sqlite
+*.sql.backup
+database-backup/
+
+### OS Files ###
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+### Temporary Files ###
+*.tmp
+*.temp
+temp/
+tmp/
+
+### Backup Files ###
+*.bak
+*.backup
+*~

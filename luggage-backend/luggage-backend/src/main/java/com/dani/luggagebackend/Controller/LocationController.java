@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -84,12 +85,10 @@ public class LocationController {
 
     /**
      * Creates a new location. Only hosts can create locations.
-     *
-     * NOTE: In production, the hostId should come from the authenticated user's session/token.
-     * For now, it's passed as a header for testing purposes.
+     * Uses JWT authentication to identify the host.
      *
      * Example request:
-     * Header: X-User-Id: <host-uuid>
+     * Header: Authorization: Bearer <jwt-token>
      * Body:
      * {
      *   "name": "Downtown Luggage Storage",
@@ -101,15 +100,14 @@ public class LocationController {
      *   "hours": "Mon-Fri: 9AM-6PM"
      * }
      *
-     * @param hostId The host's user ID from header
      * @param request Location creation request
      * @return Created location with HTTP 201
      */
     @PostMapping
     public ResponseEntity<LocationResponse> createLocation(
-            @RequestHeader("X-User-Id") UUID hostId,
             @Valid @RequestBody CreateLocationRequest request) {
         try {
+            UUID hostId = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
             LocationResponse location = locationService.createLocation(hostId, request);
             return ResponseEntity.status(HttpStatus.CREATED).body(location);
         } catch (RuntimeException e) {
@@ -119,20 +117,22 @@ public class LocationController {
 
     /**
      * Updates an existing location. Only the host who owns it can update.
+     * Uses JWT authentication to identify the host.
      *
-     * NOTE: In production, the hostId should come from the authenticated user's session/token.
+     * Example request:
+     * Header: Authorization: Bearer <jwt-token>
+     * Body: { ... location details ... }
      *
      * @param id Location ID to update
-     * @param hostId The host's user ID from header
      * @param request Update request
      * @return Updated location
      */
     @PutMapping("/{id}")
     public ResponseEntity<LocationResponse> updateLocation(
             @PathVariable UUID id,
-            @RequestHeader("X-User-Id") UUID hostId,
             @Valid @RequestBody CreateLocationRequest request) {
         try {
+            UUID hostId = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
             LocationResponse location = locationService.updateLocation(id, hostId, request);
             return ResponseEntity.ok(location);
         } catch (RuntimeException e) {
@@ -142,18 +142,19 @@ public class LocationController {
 
     /**
      * Deletes a location. Only the host who owns it can delete.
+     * Uses JWT authentication to identify the host.
      *
-     * NOTE: In production, the hostId should come from the authenticated user's session/token.
+     * Example request:
+     * Header: Authorization: Bearer <jwt-token>
      *
      * @param id Location ID to delete
-     * @param hostId The host's user ID from header
      * @return HTTP 204 on success
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteLocation(
-            @PathVariable UUID id,
-            @RequestHeader("X-User-Id") UUID hostId) {
+            @PathVariable UUID id) {
         try {
+            UUID hostId = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
             locationService.deleteLocation(id, hostId);
             return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
@@ -338,22 +339,22 @@ public class LocationController {
     /**
      * Toggle location active/inactive status.
      * Only the host who owns the location can toggle its status.
+     * Uses JWT authentication to identify the host.
      *
      * Example: PATCH /api/locations/{id}/status
-     * Header: X-User-Id: <host-uuid>
+     * Header: Authorization: Bearer <jwt-token>
      * Body: { "isActive": false }
      *
      * @param id Location ID
-     * @param hostId Host ID from header
      * @param payload Contains isActive boolean
      * @return Updated location
      */
     @PatchMapping("/{id}/status")
     public ResponseEntity<LocationResponse> toggleLocationStatus(
             @PathVariable UUID id,
-            @RequestHeader("X-User-Id") UUID hostId,
             @RequestBody Map<String, Boolean> payload) {
         try {
+            UUID hostId = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
             Boolean isActive = payload.get("isActive");
             if (isActive == null) {
                 return ResponseEntity.badRequest().build();

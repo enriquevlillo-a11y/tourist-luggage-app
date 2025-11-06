@@ -5,6 +5,7 @@ import com.dani.luggagebackend.Service.HostService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,27 +18,24 @@ import java.util.UUID;
 @CrossOrigin
 @RestController
 @RequestMapping("/api/host")
-public class HostController {
+public class  HostController {
 
     @Autowired
     private HostService hostService;
 
     /**
      * Gets all bookings across all locations owned by the host.
-     *
-     * NOTE: In production, the hostId should come from the authenticated user's session/token.
-     * For now, it's passed as a header for testing purposes.
+     * Uses JWT authentication to identify the host.
      *
      * Example request:
      * GET /api/host/bookings
-     * Header: X-User-Id: <host-uuid>
+     * Header: Authorization: Bearer <jwt-token>
      *
-     * @param hostId The host's user ID from header
      * @return List of all bookings across host's locations
      */
     @GetMapping("/bookings")
-    public ResponseEntity<List<BookingResponse>> getAllBookings(
-            @RequestHeader("X-User-Id") UUID hostId) {
+    public ResponseEntity<List<BookingResponse>> getAllBookings() {
+        UUID hostId = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         List<BookingResponse> bookings = hostService.getBookingsForHost(hostId);
         return ResponseEntity.ok(bookings);
     }
@@ -45,20 +43,20 @@ public class HostController {
     /**
      * Gets all bookings for a specific location.
      * Verifies the location belongs to the requesting host.
+     * Uses JWT authentication to identify the host.
      *
      * Example request:
      * GET /api/host/locations/{locationId}/bookings
-     * Header: X-User-Id: <host-uuid>
+     * Header: Authorization: Bearer <jwt-token>
      *
      * @param locationId The location ID
-     * @param hostId The host's user ID from header
      * @return List of bookings for the location
      */
     @GetMapping("/locations/{locationId}/bookings")
     public ResponseEntity<List<BookingResponse>> getBookingsForLocation(
-            @PathVariable UUID locationId,
-            @RequestHeader("X-User-Id") UUID hostId) {
+            @PathVariable UUID locationId) {
         try {
+            UUID hostId = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
             List<BookingResponse> bookings = hostService.getBookingsForLocation(locationId, hostId);
             return ResponseEntity.ok(bookings);
         } catch (RuntimeException e) {
@@ -69,10 +67,11 @@ public class HostController {
     /**
      * Gets a dashboard summary with booking statistics.
      * Includes total bookings and breakdowns by status (pending, confirmed, etc.).
+     * Uses JWT authentication to identify the host.
      *
      * Example request:
      * GET /api/host/dashboard
-     * Header: X-User-Id: <host-uuid>
+     * Header: Authorization: Bearer <jwt-token>
      *
      * Example response:
      * {
@@ -83,12 +82,11 @@ public class HostController {
      *   "completedBookings": 5
      * }
      *
-     * @param hostId The host's user ID from header
      * @return Dashboard statistics
      */
     @GetMapping("/dashboard")
-    public ResponseEntity<HostService.BookingDashboard> getDashboard(
-            @RequestHeader("X-User-Id") UUID hostId) {
+    public ResponseEntity<HostService.BookingDashboard> getDashboard() {
+        UUID hostId = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         HostService.BookingDashboard dashboard = hostService.getDashboard(hostId);
         return ResponseEntity.ok(dashboard);
     }

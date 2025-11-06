@@ -7,7 +7,9 @@ import com.dani.luggagebackend.Model.Users;
 import com.dani.luggagebackend.Repo.BookingRepo;
 import com.dani.luggagebackend.Repo.LocationRepo;
 import com.dani.luggagebackend.Repo.UsersRepo;
+import com.dani.luggagebackend.Security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,11 +30,17 @@ public class UsersService {
     @Autowired
     private LocationRepo locationRepo;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
     /**
      * Register a new user
      *
      * @param request Registration details
-     * @return LoginResponse with user info
+     * @return LoginResponse with user info and JWT token
      * @throws RuntimeException if email already exists
      */
     @Transactional
@@ -42,16 +50,22 @@ public class UsersService {
             throw new RuntimeException("Email already exists");
         }
 
-        // Create new user
-        // NOTE: In production, use BCrypt to hash passwords
+        // Create new user with BCrypt hashed password
         Users user = Users.builder()
                 .email(request.getEmail())
-                .passwordHash(request.getPassword()) // In production: passwordEncoder.encode(request.getPassword())
+                .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .fullName(request.getFullName())
                 .role(request.getRole() != null ? request.getRole() : Users.Role.USER)
                 .build();
 
         Users savedUser = usersRepo.save(user);
+
+        // Generate JWT token
+        String token = jwtUtil.generateToken(
+                savedUser.getId(),
+                savedUser.getEmail(),
+                savedUser.getRole().name()
+        );
 
         return LoginResponse.builder()
                 .userId(savedUser.getId())
@@ -59,6 +73,7 @@ public class UsersService {
                 .fullName(savedUser.getFullName())
                 .role(savedUser.getRole())
                 .message("User registered successfully")
+                .token(token)
                 .build();
     }
 
@@ -66,18 +81,24 @@ public class UsersService {
      * Login user
      *
      * @param request Login credentials
-     * @return LoginResponse with user info
+     * @return LoginResponse with user info and JWT token
      * @throws RuntimeException if credentials are invalid
      */
     public LoginResponse login(LoginRequest request) {
         Users user = usersRepo.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Invalid email or password"));
 
-        // NOTE: In production, use BCrypt to compare passwords
-        // passwordEncoder.matches(request.getPassword(), user.getPasswordHash())
-        if (!user.getPasswordHash().equals(request.getPassword())) {
+        // Use BCrypt to compare passwords
+        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new RuntimeException("Invalid email or password");
         }
+
+        // Generate JWT token
+        String token = jwtUtil.generateToken(
+                user.getId(),
+                user.getEmail(),
+                user.getRole().name()
+        );
 
         return LoginResponse.builder()
                 .userId(user.getId())
@@ -85,6 +106,7 @@ public class UsersService {
                 .fullName(user.getFullName())
                 .role(user.getRole())
                 .message("Login successful")
+                .token(token)
                 .build();
     }
 
@@ -173,9 +195,8 @@ public class UsersService {
         Users user = usersRepo.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Verify current password
-        // NOTE: In production, use BCrypt
-        if (!user.getPasswordHash().equals(request.getCurrentPassword())) {
+        // Verify current password using BCrypt
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPasswordHash())) {
             throw new RuntimeException("Current password is incorrect");
         }
 
@@ -184,9 +205,8 @@ public class UsersService {
             throw new RuntimeException("New password and confirmation do not match");
         }
 
-        // Update password
-        // NOTE: In production, hash with BCrypt
-        user.setPasswordHash(request.getNewPassword());
+        // Update password with BCrypt hash
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
         usersRepo.save(user);
     }
 

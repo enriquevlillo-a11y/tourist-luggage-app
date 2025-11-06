@@ -14,9 +14,12 @@ This is a Spring Boot backend application for a tourist luggage storage service.
 - Java 25
 - PostgreSQL 14
 - Spring Data JPA
+- Spring Security (JWT authentication)
 - Project Lombok
 - Maven
 - Jakarta Validation
+- JJWT 0.12.3 (JWT library)
+- BCrypt (password hashing)
 
 ## Development Commands
 
@@ -74,7 +77,7 @@ Run the application:
 ./mvnw spring-boot:run
 ```
 
-The application runs on `http://localhost:8080`
+The application runs on `http://localhost:8081`
 
 ### Testing
 
@@ -98,6 +101,14 @@ Run a specific test method:
 - **Spring Boot DevTools**: Enabled for automatic restarts during development
 - **CORS**: All controllers use `@CrossOrigin` for cross-origin requests
 
+## Additional Documentation
+
+This repository includes comprehensive companion documentation:
+- **DATABASE.md** - Detailed database schema, queries, and operations
+- **SECURITY.md** - Security best practices, environment variables, and production checklist
+
+Refer to these files for in-depth information on specific topics.
+
 ## Architecture
 
 ### Layered Architecture
@@ -109,7 +120,8 @@ The application follows a standard Spring Boot layered architecture:
    - Request/response handling with DTOs
    - All controllers use `@CrossOrigin` for CORS support
    - Controllers: `LocationController`, `BookingController`, `UsersController`, `HostController`
-   - **Authentication**: Uses `X-User-Id` header for development (should be JWT/session in production)
+   - **Authentication**: Uses JWT tokens via `Authorization: Bearer <token>` header
+   - Extracts userId from `SecurityContextHolder.getContext().getAuthentication().getPrincipal()`
 
 2. **Service Layer** (`com.dani.luggagebackend.Service`)
    - Business logic with `@Service` annotation
@@ -135,6 +147,11 @@ The application follows a standard Spring Boot layered architecture:
    - Response DTOs: Include nested DTOs to avoid exposing full entity graphs
    - Pattern: Use nested static classes for related info (e.g., `LocationResponse.HostInfo`, `BookingResponse.UserInfo`)
 
+6. **Security Layer** (`com.dani.luggagebackend.Security`)
+   - **JwtUtil**: JWT token generation, parsing, and validation (extracts claims, verifies signatures)
+   - **JwtAuthenticationFilter**: Servlet filter that intercepts requests, extracts JWT from Authorization header, validates token, and sets authentication in SecurityContext
+   - **SecurityConfig**: Spring Security configuration defining public endpoints, CORS settings, and authentication requirements
+
 ### Domain Model
 
 **Core Entities:**
@@ -144,7 +161,7 @@ The application follows a standard Spring Boot layered architecture:
    - Fields: `email` (unique), `passwordHash`, `fullName`, `role`, `createdAt`, `updatedAt`
    - Role enum: `USER`, `HOST`, `ADMIN` (default: `USER`)
    - Timestamps managed via `@PrePersist` and `@PreUpdate` lifecycle callbacks
-   - **Note**: In production, use BCrypt for password hashing (currently stores plain text for development)
+   - **Password Security**: Uses BCrypt hashing for secure password storage
 
 2. **Location** (`locations` table) - `com.dani.luggagebackend.Model.Location`
    - UUID primary key
@@ -174,31 +191,103 @@ Database connection is configured in `src/main/resources/application.properties`
 - Connection: `jdbc:postgresql://localhost:5432/luggage-backend`
 - JPA: `ddl-auto=update` (schema auto-updates on entity changes - use migrations in production)
 - SQL Initialization: `spring.sql.init.mode=never` (set to `always` only for first-time data load)
+- JWT Configuration: `jwt.secret` and `jwt.expiration` (24 hours = 86400000ms)
+
+## JWT Authentication & Security
+
+The application uses JWT (JSON Web Tokens) for stateless authentication with Spring Security.
+
+### Security Architecture
+
+**Components:**
+1. **JwtUtil** (`com.dani.luggagebackend.Security.JwtUtil`) - Token generation and validation
+2. **JwtAuthenticationFilter** (`com.dani.luggagebackend.Security.JwtAuthenticationFilter`) - Request interceptor
+3. **SecurityConfig** (`com.dani.luggagebackend.Security.SecurityConfig`) - Spring Security configuration
+
+### Authentication Flow
+
+1. **Registration/Login**:
+   - User registers or logs in with email/password
+   - Password is hashed with BCrypt before storage/comparison
+   - Server generates JWT token with user claims (userId, email, role)
+   - Token returned in `LoginResponse.token` field
+
+2. **Authenticated Requests**:
+   - Client includes JWT in `Authorization: Bearer <token>` header
+   - `JwtAuthenticationFilter` intercepts request and validates token
+   - User information extracted and stored in `SecurityContext`
+   - Controllers extract userId via `SecurityContextHolder.getContext().getAuthentication().getPrincipal()`
+
+3. **Public Endpoints** (no authentication required):
+   - User registration/login
+   - Location browsing (nearby, search, filter, cities, popular, etc.)
+   - Email availability check
+
+### JWT Token Structure
+
+Tokens include the following claims:
+```json
+{
+  "userId": "uuid-string",
+  "email": "user@example.com",
+  "role": "USER|HOST|ADMIN",
+  "sub": "user@example.com",
+  "iat": 1234567890,
+  "exp": 1234654290
+}
+```
+
+### Password Security
+
+- **BCrypt Hashing**: All passwords are hashed using BCrypt (via `PasswordEncoder`)
+- **Registration**: `UsersService.register()` hashes password before saving
+- **Login**: `UsersService.login()` uses `passwordEncoder.matches()` to verify
+- **Password Change**: `UsersService.changePassword()` verifies current password and hashes new one
+
+### Usage Pattern in Controllers
+
+```java
+// Extract authenticated user ID from SecurityContext
+UUID userId = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+// Use the userId for authorization checks
+if (!resource.getOwnerId().equals(userId)) {
+    return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+}
+```
+
+### Configuration
+
+JWT settings in `application.properties`:
+```properties
+jwt.secret=<base64-encoded-secret>
+jwt.expiration=86400000  # 24 hours in milliseconds
+```
+
+**Important**: In production, store `jwt.secret` as an environment variable, not in the properties file.
 
 ## API Endpoints
 
 ### Users Module (`/api/users`) - COMPLETED ✅
 
-**Authentication:**
-- `POST /api/users/register` - Register new user account
-- `POST /api/users/login` - User login (returns user info, would return JWT in production)
+**Authentication (Public):**
+- `POST /api/users/register` - Register new user account (returns JWT token)
+- `POST /api/users/login` - User login (returns JWT token)
+- `GET /api/users/check-email?email=` - Check if email exists
 
-**Profile Management:**
-- `GET /api/users/me` - Get current user profile (requires `X-User-Id` header)
+**Profile Management (Authenticated):**
+- `GET /api/users/me` - Get current user profile
+- `PUT /api/users/{userId}` - Update user profile (own profile only)
+- `PUT /api/users/{userId}/password` - Change password (own account only)
+- `DELETE /api/users/{userId}` - Delete user account (own account only)
+- `PATCH /api/users/{userId}/upgrade-to-host` - Upgrade USER to HOST role (own account only)
+
+**User Discovery (Authenticated):**
 - `GET /api/users/{userId}` - Get user by ID
-- `PUT /api/users/{userId}` - Update user profile (requires `X-User-Id` header)
-- `PUT /api/users/{userId}/password` - Change password (requires `X-User-Id` header)
-- `DELETE /api/users/{userId}` - Delete user account (requires `X-User-Id` header)
-
-**User Discovery:**
 - `GET /api/users` - Get all users (admin endpoint)
 - `GET /api/users/role/{role}` - Filter users by role (USER, HOST, ADMIN)
 - `GET /api/users/search?q=query` - Search users by name or email
 - `GET /api/users/by-email?email=` - Find user by email
-- `GET /api/users/check-email?email=` - Check if email exists (useful for frontend validation)
-
-**Role Management:**
-- `PATCH /api/users/{userId}/upgrade-to-host` - Upgrade USER to HOST role
 
 ### Locations Module (`/api/locations`) - COMPLETED ✅
 
@@ -216,8 +305,8 @@ Database connection is configured in `src/main/resources/application.properties`
 - `GET /api/locations/filter?minPrice=&maxPrice=&minCapacity=&city=` - Filter locations
 - `POST /api/locations/nearby/filtered` - Find nearby locations with filters
 
-**Host Management (require `X-User-Id` header):**
-- `POST /api/locations` - Create new location (HOST role required)
+**Host Management (Authenticated, HOST role):**
+- `POST /api/locations` - Create new location
 - `PUT /api/locations/{id}` - Update location (owner only)
 - `DELETE /api/locations/{id}` - Delete location (owner only)
 - `GET /api/locations/host/{hostId}` - Get all locations by host
@@ -225,23 +314,25 @@ Database connection is configured in `src/main/resources/application.properties`
 
 ### Host Module (`/api/host`) - COMPLETED ✅
 
-**Booking Management (require `X-User-Id` header):**
+**Booking Management (Authenticated, HOST role):**
 - `GET /api/host/bookings` - View all bookings across all host's locations
 - `GET /api/host/locations/{locationId}/bookings` - View bookings for specific location
+- `GET /api/host/dashboard` - Get booking statistics
 
-**Dashboard:**
-- `GET /api/host/dashboard` - Get booking statistics (total, pending, confirmed, cancelled, completed)
+### Bookings Module (`/api/bookings`) - COMPLETED ✅
 
-### Bookings Module (`/api/bookings`) - NOT YET IMPLEMENTED ⚠️
-
-**Expected endpoints (to be implemented):**
+**Customer Endpoints (Authenticated):**
 - `POST /api/bookings` - Create new booking
+- `GET /api/bookings` - Get all bookings (admin)
 - `GET /api/bookings/{id}` - Get booking by ID
+- `GET /api/bookings/me` - Get current user's bookings
 - `GET /api/bookings/user/{userId}` - Get user's bookings
-- `PUT /api/bookings/{id}` - Update booking
-- `PATCH /api/bookings/{id}/cancel` - Cancel booking
-- `PATCH /api/bookings/{id}/confirm` - Confirm booking (host only)
-- `PATCH /api/bookings/{id}/complete` - Mark as completed
+- `PUT /api/bookings/{id}` - Update booking (owner only)
+- `DELETE /api/bookings/{id}` - Cancel booking (owner only)
+
+**Host Endpoints (Authenticated, HOST role):**
+- `PATCH /api/bookings/{bookingId}/confirm` - Confirm booking (location owner only)
+- `PATCH /api/bookings/{bookingId}/complete` - Mark booking as completed (location owner only)
 
 ## Important Patterns & Conventions
 
@@ -343,17 +434,18 @@ WHERE /* conditions */
 ORDER BY distance
 ```
 
-### 10. Authentication Pattern (Development)
-Controllers use `X-User-Id` header for user identification:
+### 10. JWT Authentication Pattern
+Controllers extract authenticated user ID from SecurityContext:
 ```java
 @GetMapping("/me")
-public ResponseEntity<UserResponse> getCurrentUser(
-    @RequestHeader("X-User-Id") UUID userId) {
-    // ...
+public ResponseEntity<UserResponse> getCurrentUser() {
+    UUID userId = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    // Use userId for authorization checks
+    return usersService.getUserById(userId)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
 }
 ```
-
-**Important**: This is for development/testing only. Production should use JWT tokens or session-based auth.
 
 ### 11. Repository Query Methods
 Use Spring Data JPA method naming conventions:
@@ -417,25 +509,56 @@ All users have password `password123` (Admin has `admin123`)
 
 ### Testing Endpoints with curl
 
-Example login:
+**Step 1: Login to get JWT token**
 ```bash
-curl -X POST http://localhost:8080/api/users/login \
+curl -X POST http://localhost:8081/api/users/login \
   -H "Content-Type: application/json" \
   -d '{"email": "john.doe@email.com", "password": "password123"}'
 ```
 
-Example with authentication header:
-```bash
-curl -X GET http://localhost:8080/api/users/me \
-  -H "X-User-Id: 11111111-1111-1111-1111-111111111111"
+Response will include a JWT token:
+```json
+{
+  "userId": "11111111-1111-1111-1111-111111111111",
+  "email": "john.doe@email.com",
+  "fullName": "John Doe",
+  "role": "USER",
+  "message": "Login successful",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
 ```
 
-## Known Issues & Production Notes
+**Step 2: Use JWT token for authenticated requests**
+```bash
+# Save the token
+TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 
-1. **Password Storage**: Currently stores plain text passwords. Implement BCrypt hashing for production.
-2. **Authentication**: Uses simple `X-User-Id` header. Implement JWT tokens or session-based auth for production.
-3. **SQL Initialization**: Set `spring.sql.init.mode=never` after first run to avoid duplicate data errors.
-4. **Database Port Conflict**: Local PostgreSQL services must be stopped before starting Docker PostgreSQL.
-5. **Error Handling**: Uses generic `RuntimeException`. Implement custom exceptions and global exception handler for production.
-6. **Soft Delete**: Currently uses hard delete. Consider implementing soft delete for users and locations.
-7. **Cascade Operations**: Be careful with entity deletions - may need to handle bookings when deleting users/locations.
+# Make authenticated request
+curl -X GET http://localhost:8081/api/users/me \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+**Example: Create a booking**
+```bash
+curl -X POST http://localhost:8081/api/bookings \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "locationId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "startTime": "2025-02-01T10:00:00Z",
+    "endTime": "2025-02-01T16:00:00Z",
+    "numberOfItems": 2
+  }'
+```
+
+## Production Notes
+
+1. **JWT Secret**: Store `jwt.secret` as an environment variable, not in application.properties
+2. **SQL Initialization**: Set `spring.sql.init.mode=never` after first run to avoid duplicate data errors
+3. **Database Port Conflict**: Local PostgreSQL services must be stopped before starting Docker PostgreSQL
+4. **Error Handling**: Uses generic `RuntimeException`. Implement custom exceptions and global exception handler for better error responses
+5. **Soft Delete**: Currently uses hard delete. Consider implementing soft delete for users and locations
+6. **Cascade Operations**: Be careful with entity deletions - may need to handle bookings when deleting users/locations
+7. **CORS Configuration**: Currently allows all origins (`*`). In production, restrict to specific frontend domains
+8. **Token Expiration**: Currently set to 24 hours. Adjust based on security requirements
+9. **JJWT Deprecations**: Some JJWT methods are deprecated (SignatureAlgorithm). Consider updating to newer API patterns

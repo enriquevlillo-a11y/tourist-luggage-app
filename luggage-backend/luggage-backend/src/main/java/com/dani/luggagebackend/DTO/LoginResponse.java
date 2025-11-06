@@ -18,7 +18,5 @@ public class LoginResponse {
     private String fullName;
     private Users.Role role;
     private String message;
-
-    // In production, this would include a JWT token
-    // private String token;
+    private String token; // JWT token for authentication
 }

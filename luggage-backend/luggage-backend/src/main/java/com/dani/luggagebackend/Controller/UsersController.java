@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -73,15 +74,16 @@ UsersController {
 
     /**
      * Get current user profile
-     * Uses the X-User-Id header to identify the user
+     * Uses JWT authentication to identify the user.
      *
-     * NOTE: In production, this would use JWT token authentication
+     * Example: GET /api/users/me
+     * Header: Authorization: Bearer <jwt-token>
      *
-     * @param userId User ID from header
      * @return UserResponse with profile info
      */
     @GetMapping("/me")
-    public ResponseEntity<UserResponse> getCurrentUser(@RequestHeader("X-User-Id") UUID userId) {
+    public ResponseEntity<UserResponse> getCurrentUser() {
+        UUID userId = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         return usersService.getUserById(userId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -133,6 +135,8 @@ UsersController {
 
     /**
      * Update user profile
+     * User can only update their own profile
+     * Uses JWT authentication to identify the user.
      *
      * Example request body:
      * {
@@ -140,18 +144,16 @@ UsersController {
      *   "fullName": "John Updated Doe"
      * }
      *
-     * NOTE: User can only update their own profile
-     * In production, verify that the authenticated user matches the userId
-     *
-     * @param userId  User ID from header
+     * @param userId  User ID from path
      * @param request Update request
      * @return Updated UserResponse
      */
     @PutMapping("/{userId}")
     public ResponseEntity<UserResponse> updateUser(
             @PathVariable UUID userId,
-            @RequestHeader("X-User-Id") UUID authenticatedUserId,
             @Valid @RequestBody UpdateUserRequest request) {
+
+        UUID authenticatedUserId = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
         // Verify user is updating their own profile
         if (!userId.equals(authenticatedUserId)) {
@@ -168,6 +170,8 @@ UsersController {
 
     /**
      * Change user password
+     * User can only change their own password
+     * Uses JWT authentication to identify the user.
      *
      * Example request body:
      * {
@@ -176,15 +180,16 @@ UsersController {
      *   "confirmPassword": "newpassword123"
      * }
      *
-     * @param userId  User ID from header
+     * @param userId  User ID from path
      * @param request Password change request
      * @return Success message
      */
     @PutMapping("/{userId}/password")
     public ResponseEntity<Map<String, String>> changePassword(
             @PathVariable UUID userId,
-            @RequestHeader("X-User-Id") UUID authenticatedUserId,
             @Valid @RequestBody ChangePasswordRequest request) {
+
+        UUID authenticatedUserId = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
         // Verify user is changing their own password
         if (!userId.equals(authenticatedUserId)) {
@@ -202,16 +207,20 @@ UsersController {
 
     /**
      * Upgrade user to HOST role
+     * User can only upgrade their own account
+     * Uses JWT authentication to identify the user.
      *
      * Example: PATCH /api/users/{userId}/upgrade-to-host
+     * Header: Authorization: Bearer <jwt-token>
      *
      * @param userId User ID to upgrade
      * @return Updated UserResponse
      */
     @PatchMapping("/{userId}/upgrade-to-host")
     public ResponseEntity<UserResponse> upgradeToHost(
-            @PathVariable UUID userId,
-            @RequestHeader("X-User-Id") UUID authenticatedUserId) {
+            @PathVariable UUID userId) {
+
+        UUID authenticatedUserId = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
         // Verify user is upgrading their own account
         if (!userId.equals(authenticatedUserId)) {
@@ -228,9 +237,11 @@ UsersController {
 
     /**
      * Delete user account
+     * User can only delete their own account
+     * Uses JWT authentication to identify the user.
      *
      * Example: DELETE /api/users/{userId}
-     * Header: X-User-Id: {userId}
+     * Header: Authorization: Bearer <jwt-token>
      *
      * NOTE: In production, implement soft delete and proper cleanup
      *
@@ -239,8 +250,9 @@ UsersController {
      */
     @DeleteMapping("/{userId}")
     public ResponseEntity<Void> deleteUser(
-            @PathVariable UUID userId,
-            @RequestHeader("X-User-Id") UUID authenticatedUserId) {
+            @PathVariable UUID userId) {
+
+        UUID authenticatedUserId = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
         // Verify user is deleting their own account
         // Admins could be allowed to delete any account

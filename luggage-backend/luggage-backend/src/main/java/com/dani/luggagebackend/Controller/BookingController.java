@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,10 +29,11 @@ public class BookingController {
 
     /**
      * Create a new booking
+     * Uses JWT authentication to identify the customer.
      *
      * Example request:
      * POST /api/bookings
-     * Header: X-User-Id: <customer-uuid>
+     * Header: Authorization: Bearer <jwt-token>
      * Body:
      * {
      *   "locationId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
@@ -40,15 +42,14 @@ public class BookingController {
      *   "numberOfItems": 2
      * }
      *
-     * @param userId  User ID from header
      * @param request Booking details
      * @return Created booking with calculated price
      */
     @PostMapping
     public ResponseEntity<BookingResponse> createBooking(
-            @RequestHeader("X-User-Id") UUID userId,
             @Valid @RequestBody CreateBookingRequest request) {
         try {
+            UUID userId = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
             BookingResponse booking = service.createBooking(userId, request);
             return ResponseEntity.status(HttpStatus.CREATED).body(booking);
         } catch (RuntimeException e) {
@@ -86,17 +87,17 @@ public class BookingController {
     }
 
     /**
-     * Get current user's bookings using header
+     * Get current user's bookings
+     * Uses JWT authentication to identify the user.
      *
      * Example: GET /api/bookings/me
-     * Header: X-User-Id: <user-uuid>
+     * Header: Authorization: Bearer <jwt-token>
      *
-     * @param userId User ID from header
      * @return List of user's bookings
      */
     @GetMapping("/me")
-    public ResponseEntity<List<BookingResponse>> getMyBookings(
-            @RequestHeader("X-User-Id") UUID userId) {
+    public ResponseEntity<List<BookingResponse>> getMyBookings() {
+        UUID userId = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         List<BookingResponse> bookings = service.getUserBookings(userId);
         return ResponseEntity.ok(bookings);
     }
@@ -120,10 +121,11 @@ public class BookingController {
      * Update booking details
      * Only pending bookings can be updated
      * User can only update their own bookings
+     * Uses JWT authentication to identify the user.
      *
      * Example request:
      * PUT /api/bookings/{bookingId}
-     * Header: X-User-Id: <user-uuid>
+     * Header: Authorization: Bearer <jwt-token>
      * Body:
      * {
      *   "startTime": "2025-02-01T11:00:00Z",
@@ -131,16 +133,15 @@ public class BookingController {
      * }
      *
      * @param bookingId Booking ID to update
-     * @param userId    User ID from header
      * @param request   Update details
      * @return Updated booking with recalculated price
      */
     @PutMapping("/{bookingId}")
     public ResponseEntity<BookingResponse> updateBooking(
             @PathVariable UUID bookingId,
-            @RequestHeader("X-User-Id") UUID userId,
             @Valid @RequestBody UpdateBookingRequest request) {
         try {
+            UUID userId = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
             BookingResponse booking = service.updateBooking(bookingId, userId, request);
             return ResponseEntity.ok(booking);
         } catch (RuntimeException e) {
@@ -151,19 +152,19 @@ public class BookingController {
     /**
      * Cancel a booking
      * User can cancel their own pending or confirmed bookings
+     * Uses JWT authentication to identify the user.
      *
      * Example: DELETE /api/bookings/{bookingId}
-     * Header: X-User-Id: <user-uuid>
+     * Header: Authorization: Bearer <jwt-token>
      *
      * @param bookingId Booking ID to cancel
-     * @param userId    User ID from header
      * @return Success message
      */
     @DeleteMapping("/{bookingId}")
     public ResponseEntity<Map<String, String>> cancelBooking(
-            @PathVariable UUID bookingId,
-            @RequestHeader("X-User-Id") UUID userId) {
+            @PathVariable UUID bookingId) {
         try {
+            UUID userId = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
             service.cancelBooking(bookingId, userId);
             return ResponseEntity.ok(Map.of("message", "Booking cancelled successfully"));
         } catch (RuntimeException e) {
@@ -175,19 +176,19 @@ public class BookingController {
     /**
      * Confirm a booking (host only)
      * Changes status from PENDING to CONFIRMED
+     * Uses JWT authentication to identify the host.
      *
      * Example: PATCH /api/bookings/{bookingId}/confirm
-     * Header: X-User-Id: <host-uuid>
+     * Header: Authorization: Bearer <jwt-token>
      *
      * @param bookingId Booking ID to confirm
-     * @param hostId    Host ID from header
      * @return Updated booking
      */
     @PatchMapping("/{bookingId}/confirm")
     public ResponseEntity<BookingResponse> confirmBooking(
-            @PathVariable UUID bookingId,
-            @RequestHeader("X-User-Id") UUID hostId) {
+            @PathVariable UUID bookingId) {
         try {
+            UUID hostId = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
             BookingResponse booking = service.confirmBooking(bookingId, hostId);
             return ResponseEntity.ok(booking);
         } catch (RuntimeException e) {
@@ -199,19 +200,19 @@ public class BookingController {
      * Complete a booking (host only)
      * Changes status to COMPLETED
      * Usually done after the booking end time has passed
+     * Uses JWT authentication to identify the host.
      *
      * Example: PATCH /api/bookings/{bookingId}/complete
-     * Header: X-User-Id: <host-uuid>
+     * Header: Authorization: Bearer <jwt-token>
      *
      * @param bookingId Booking ID to complete
-     * @param hostId    Host ID from header
      * @return Updated booking
      */
     @PatchMapping("/{bookingId}/complete")
     public ResponseEntity<BookingResponse> completeBooking(
-            @PathVariable UUID bookingId,
-            @RequestHeader("X-User-Id") UUID hostId) {
+            @PathVariable UUID bookingId) {
         try {
+            UUID hostId = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
             BookingResponse booking = service.completeBooking(bookingId, hostId);
             return ResponseEntity.ok(booking);
         } catch (RuntimeException e) {
