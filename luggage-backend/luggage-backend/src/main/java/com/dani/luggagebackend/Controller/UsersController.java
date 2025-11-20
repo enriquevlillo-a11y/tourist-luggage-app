@@ -268,6 +268,7 @@ UsersController {
         }
     }
 
+
     /**
      * Search users by name or email
      *

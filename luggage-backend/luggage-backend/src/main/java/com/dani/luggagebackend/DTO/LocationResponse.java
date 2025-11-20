@@ -25,6 +25,8 @@ public class LocationResponse {
     private Boolean isActive;
     private Double distanceKm; // Distance from user's location
     private HostInfo host; // Information about the host
+    private Double rating;
+    private java.util.List<ReviewResponse> reviews;
 
     @Data
     @AllArgsConstructor
@@ -34,5 +36,17 @@ public class LocationResponse {
         private UUID id;
         private String fullName;
         private String email;
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Builder
+    public static class ReviewResponse {
+        private String id;
+        private String user;
+        private String comment;
+        private Integer rating;
+        private String createdAt;
     }
 }

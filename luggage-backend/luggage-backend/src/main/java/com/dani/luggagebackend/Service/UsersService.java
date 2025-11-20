@@ -1,6 +1,9 @@
 package com.dani.luggagebackend.Service;
 
 import com.dani.luggagebackend.DTO.*;
+import com.dani.luggagebackend.Exception.BadRequestException;
+import com.dani.luggagebackend.Exception.ResourceNotFoundException;
+import com.dani.luggagebackend.Exception.UnauthorizedException;
 import com.dani.luggagebackend.Model.Booking;
 import com.dani.luggagebackend.Model.Location;
 import com.dani.luggagebackend.Model.Users;
@@ -47,7 +50,7 @@ public class UsersService {
     public LoginResponse register(RegisterRequest request) {
         // Check if email already exists
         if (usersRepo.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already exists");
+            throw new BadRequestException("Email already exists");
         }
 
         // Create new user with BCrypt hashed password
@@ -64,8 +67,7 @@ public class UsersService {
         String token = jwtUtil.generateToken(
                 savedUser.getId(),
                 savedUser.getEmail(),
-                savedUser.getRole().name()
-        );
+                savedUser.getRole().name());
 
         return LoginResponse.builder()
                 .userId(savedUser.getId())
@@ -86,19 +88,18 @@ public class UsersService {
      */
     public LoginResponse login(LoginRequest request) {
         Users user = usersRepo.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+                .orElseThrow(() -> new UnauthorizedException("Invalid email or password"));
 
         // Use BCrypt to compare passwords
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            throw new RuntimeException("Invalid email or password");
+            throw new UnauthorizedException("Invalid email or password");
         }
 
         // Generate JWT token
         String token = jwtUtil.generateToken(
                 user.getId(),
                 user.getEmail(),
-                user.getRole().name()
-        );
+                user.getRole().name());
 
         return LoginResponse.builder()
                 .userId(user.getId())
@@ -164,12 +165,12 @@ public class UsersService {
     @Transactional
     public UserResponse updateUser(UUID userId, UpdateUserRequest request) {
         Users user = usersRepo.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         // Update email if provided and different
         if (request.getEmail() != null && !request.getEmail().equals(user.getEmail())) {
             if (usersRepo.existsByEmail(request.getEmail())) {
-                throw new RuntimeException("Email already exists");
+                throw new BadRequestException("Email already exists");
             }
             user.setEmail(request.getEmail());
         }
@@ -193,16 +194,16 @@ public class UsersService {
     @Transactional
     public void changePassword(UUID userId, ChangePasswordRequest request) {
         Users user = usersRepo.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         // Verify current password using BCrypt
         if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPasswordHash())) {
-            throw new RuntimeException("Current password is incorrect");
+            throw new BadRequestException("Current password is incorrect");
         }
 
         // Check if new password matches confirmation
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
-            throw new RuntimeException("New password and confirmation do not match");
+            throw new BadRequestException("New password and confirmation do not match");
         }
 
         // Update password with BCrypt hash
@@ -220,14 +221,14 @@ public class UsersService {
     @Transactional
     public UserResponse upgradeToHost(UUID userId) {
         Users user = usersRepo.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         if (user.getRole() == Users.Role.HOST) {
-            throw new RuntimeException("User is already a host");
+            throw new BadRequestException("User is already a host");
         }
 
         if (user.getRole() == Users.Role.ADMIN) {
-            throw new RuntimeException("Cannot change admin role");
+            throw new BadRequestException("Cannot change admin role");
         }
 
         user.setRole(Users.Role.HOST);
@@ -244,7 +245,7 @@ public class UsersService {
     @Transactional
     public void deleteUser(UUID userId) {
         Users user = usersRepo.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         // In production, you might want to:
         // 1. Check for active bookings

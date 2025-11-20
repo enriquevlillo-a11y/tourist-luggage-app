@@ -11,10 +11,11 @@ This is a Spring Boot backend application for a tourist luggage storage service.
 
 **Tech Stack:**
 - Spring Boot 3.5.6
-- Java 25
+- Java 21
 - PostgreSQL 14
 - Spring Data JPA
 - Spring Security (JWT authentication)
+- Flyway (Database migrations)
 - Project Lombok
 - Maven
 - Jakarta Validation
@@ -551,10 +552,107 @@ curl -X POST http://localhost:8081/api/bookings \
   }'
 ```
 
+## Database Migrations
+
+The application uses **Flyway** for database schema version control and migrations.
+
+### Migration Files
+
+Located in `src/main/resources/db/migration/`:
+- `V1__Init.sql` - Initial schema creation (users, locations, bookings tables)
+
+### Creating New Migrations
+
+1. Create a new file: `src/main/resources/db/migration/V{number}__{description}.sql`
+   - Example: `V2__Add_user_phone_number.sql`
+2. Naming convention: `V{version}__{description}.sql` (double underscore!)
+3. Flyway automatically runs new migrations on application startup
+4. Migrations are tracked in `flyway_schema_history` table
+
+### Production Migration Strategy
+
+- Flyway runs migrations automatically on startup
+- In production, set `spring.jpa.hibernate.ddl-auto=validate` (never use `update`)
+- Use Flyway exclusively for schema changes in production environments
+
+## AWS Deployment
+
+The application is configured for deployment to AWS Elastic Beanstalk.
+
+### Deployment Files
+
+- **Procfile** - Defines how to run the JAR on AWS
+- **.ebextensions/app.config** - Elastic Beanstalk environment configuration
+- **application-prod.properties** - Production environment settings
+
+### Building for Production
+
+```bash
+# Build JAR (skipping tests for faster builds)
+./mvnw clean package -DskipTests
+
+# JAR location: target/luggage-backend-0.0.1-SNAPSHOT.jar
+```
+
+### AWS Elastic Beanstalk Deployment
+
+**Prerequisites:**
+```bash
+# Install AWS CLI
+brew install awscli
+
+# Configure AWS credentials
+aws configure
+
+# Install Elastic Beanstalk CLI
+brew install aws-elasticbeanstalk
+```
+
+**Initialize and Deploy:**
+```bash
+# Initialize EB application (one-time setup)
+eb init
+# Select: Region, Application name, Platform (Corretto 21)
+
+# Create environment (one-time setup)
+eb create luggage-backend-prod --single
+# Use --single flag to avoid load balancer costs during development
+
+# Set environment variables
+eb setenv DATABASE_URL="jdbc:postgresql://your-rds-endpoint:5432/luggagedb"
+eb setenv DB_USERNAME="your-db-username"
+eb setenv DB_PASSWORD="your-db-password"
+eb setenv JWT_SECRET="$(openssl rand -base64 64 | tr -d '\n')"
+eb setenv SPRING_PROFILES_ACTIVE="prod"
+
+# Deploy application
+./mvnw clean package -DskipTests
+eb deploy
+
+# Open application in browser
+eb open
+```
+
+### RDS Database Setup
+
+1. Create RDS PostgreSQL instance via AWS Console
+2. Configure security group to allow connections from Elastic Beanstalk
+3. Use RDS endpoint in `DATABASE_URL` environment variable
+4. Flyway will automatically run migrations on first deployment
+
+### Environment Configuration
+
+Production environment uses `application-prod.properties`:
+- Server runs on port 5000 (required by Elastic Beanstalk)
+- Database connection via environment variables
+- JWT secret from environment variable
+- SQL initialization disabled (uses Flyway instead)
+- Production logging levels (INFO)
+
 ## Production Notes
 
 1. **JWT Secret**: Store `jwt.secret` as an environment variable, not in application.properties
-2. **SQL Initialization**: Set `spring.sql.init.mode=never` after first run to avoid duplicate data errors
+2. **Database Migrations**: Use Flyway for all schema changes in production (never use `ddl-auto=update`)
 3. **Database Port Conflict**: Local PostgreSQL services must be stopped before starting Docker PostgreSQL
 4. **Error Handling**: Uses generic `RuntimeException`. Implement custom exceptions and global exception handler for better error responses
 5. **Soft Delete**: Currently uses hard delete. Consider implementing soft delete for users and locations
@@ -562,3 +660,4 @@ curl -X POST http://localhost:8081/api/bookings \
 7. **CORS Configuration**: Currently allows all origins (`*`). In production, restrict to specific frontend domains
 8. **Token Expiration**: Currently set to 24 hours. Adjust based on security requirements
 9. **JJWT Deprecations**: Some JJWT methods are deprecated (SignatureAlgorithm). Consider updating to newer API patterns
+10. **SSL/TLS**: Production deployment should use HTTPS. AWS Elastic Beanstalk can handle SSL certificates via AWS Certificate Manager
