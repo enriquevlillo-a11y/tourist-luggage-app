@@ -1,7 +1,9 @@
 package com.dani.luggagebackend.Controller;
 
 import com.dani.luggagebackend.DTO.*;
+import com.dani.luggagebackend.Exception.RateLimitExceededException;
 import com.dani.luggagebackend.Model.Users;
+import com.dani.luggagebackend.Service.RateLimitService;
 import com.dani.luggagebackend.Service.UsersService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,35 +19,42 @@ import java.util.UUID;
 @CrossOrigin
 @RestController
 @RequestMapping("/api/users")
-public class
-UsersController {
+public class UsersController {
 
     @Autowired
     private UsersService usersService;
+
+    @Autowired
+    private RateLimitService rateLimitService;
 
     /**
      * Register a new user account
      *
      * Example request body:
      * {
-     *   "email": "user@example.com",
-     *   "password": "password123",
-     *   "fullName": "John Doe",
-     *   "role": "USER"
+     * "email": "user@example.com",
+     * "password": "password123",
+     * "fullName": "John Doe",
+     * "role": "USER"
      * }
      *
      * @param request Registration details
      * @return LoginResponse with user info and HTTP 201
      */
     @PostMapping("/register")
-    public ResponseEntity<LoginResponse> register(@Valid @RequestBody RegisterRequest request) {
-        try {
-            LoginResponse response = usersService.register(request);
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (RuntimeException e) {
-            // In production, use proper error handling
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+    public ResponseEntity<LoginResponse> register(@Valid @RequestBody RegisterRequest request,
+            @RequestHeader(value = "X-Forwarded-For", required = false) String forwardedFor,
+            jakarta.servlet.http.HttpServletRequest httpRequest) {
+        // Get IP address for rate limiting
+        String clientIp = forwardedFor != null ? forwardedFor.split(",")[0] : httpRequest.getRemoteAddr();
+
+        // Check rate limit
+        if (!rateLimitService.resolveAuthBucket("register:" + clientIp).tryConsume(1)) {
+            throw new RateLimitExceededException("Too many registration attempts. Please try again later.");
         }
+
+        LoginResponse response = usersService.register(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     /**
@@ -53,8 +62,8 @@ UsersController {
      *
      * Example request body:
      * {
-     *   "email": "user@example.com",
-     *   "password": "password123"
+     * "email": "user@example.com",
+     * "password": "password123"
      * }
      *
      * NOTE: In production, this would return a JWT token instead of user details
@@ -63,13 +72,19 @@ UsersController {
      * @return LoginResponse with user info
      */
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
-        try {
-            LoginResponse response = usersService.login(request);
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request,
+            @RequestHeader(value = "X-Forwarded-For", required = false) String forwardedFor,
+            jakarta.servlet.http.HttpServletRequest httpRequest) {
+        // Get IP address for rate limiting
+        String clientIp = forwardedFor != null ? forwardedFor.split(",")[0] : httpRequest.getRemoteAddr();
+
+        // Check rate limit
+        if (!rateLimitService.resolveAuthBucket("login:" + clientIp).tryConsume(1)) {
+            throw new RateLimitExceededException("Too many login attempts. Please try again later.");
         }
+
+        LoginResponse response = usersService.login(request);
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -140,8 +155,8 @@ UsersController {
      *
      * Example request body:
      * {
-     *   "email": "newemail@example.com",
-     *   "fullName": "John Updated Doe"
+     * "email": "newemail@example.com",
+     * "fullName": "John Updated Doe"
      * }
      *
      * @param userId  User ID from path
@@ -175,9 +190,9 @@ UsersController {
      *
      * Example request body:
      * {
-     *   "currentPassword": "oldpassword",
-     *   "newPassword": "newpassword123",
-     *   "confirmPassword": "newpassword123"
+     * "currentPassword": "oldpassword",
+     * "newPassword": "newpassword123",
+     * "confirmPassword": "newpassword123"
      * }
      *
      * @param userId  User ID from path
@@ -267,7 +282,6 @@ UsersController {
             return ResponseEntity.notFound().build();
         }
     }
-
 
     /**
      * Search users by name or email

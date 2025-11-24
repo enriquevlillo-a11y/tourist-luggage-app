@@ -11,7 +11,6 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 import java.util.UUID;
 
-
 @Entity
 @Component
 @Data
@@ -34,14 +33,12 @@ public class Booking {
     @JoinColumn(name = "location_id")
     private Location location;
 
-
-
-    @Column(nullable = false)
+    @Column(name = "start_time", nullable = false)
     private Instant startTime;
-    @Column(nullable = false)
+    @Column(name = "end_time", nullable = false)
     private Instant endTime;
 
-
+    @Column(name = "price_cents")
     private Long priceCents;
 
     @Enumerated(EnumType.STRING)
@@ -55,6 +52,5 @@ public class Booking {
         CANCELLED,
         COMPLETED
     }
-    
 
 }

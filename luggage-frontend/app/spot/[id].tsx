@@ -71,13 +71,22 @@
  */
 // SpotDetail.tsx
 import { Link, useLocalSearchParams, useNavigation, usePathname } from "expo-router";
-import { View, Text, Button, StyleSheet, FlatList, TouchableOpacity } from "react-native";
+import { View, Text, Button, StyleSheet, FlatList, TouchableOpacity, Platform } from "react-native";
 import { useEffect, useState } from "react";
 import { useSpotsStore } from "../../stores/spots";
 import StarRating from "react-native-star-rating-widget";
 import { LinearGradient } from "expo-linear-gradient";
-import MapView, { Marker } from "react-native-maps";
 import { useRouter } from "expo-router";
+
+// Platform-specific imports
+let MapView: any = null;
+let Marker: any = null;
+
+if (Platform.OS !== 'web') {
+  const RNMaps = require('react-native-maps');
+  MapView = RNMaps.default;
+  Marker = RNMaps.Marker;
+}
 
 
 export function ReserveButton({ id }: { id: number | string }) {
@@ -98,10 +107,14 @@ export default function SpotDetail() {
   // Call hooks unconditionally to satisfy the Rules of Hooks.
   // Use a safe fallback for id when passing to the store selector.
   const spot = useSpotsStore((s) => s.getById(String(id ?? "")));
-  const [rating, setRating] = useState<number>(spot?.rating ?? 0);
+
+  // Ensure rating is a safe number (round to 1 decimal to avoid precision errors)
+  const safeRating = spot?.rating ? Math.round(spot.rating * 10) / 10 : 0;
+  const [rating, setRating] = useState<number>(safeRating);
 
   useEffect(() => {
-    setRating(spot?.rating ?? 0);
+    const newRating = spot?.rating ? Math.round(spot.rating * 10) / 10 : 0;
+    setRating(newRating);
     console.log(pathname);
   }, [spot?.rating, pathname]);
 
@@ -133,9 +146,23 @@ export default function SpotDetail() {
     <View style={styles.root}>
       {/* TOP: Map */}
       <View style={styles.mapWrapper}>
-        <MapView style={styles.map} initialRegion={region}>
-          <Marker coordinate={{ latitude: spot.latitude, longitude: spot.longitude }} title={spot.name} />
-        </MapView>
+        {Platform.OS === 'web' ? (
+          // Web fallback - OpenStreetMap embed
+          <View style={styles.map}>
+            <iframe
+              title="Location map"
+              src={`https://www.openstreetmap.org/export/embed.html?bbox=${spot.longitude-0.008}%2C${spot.latitude-0.012}%2C${spot.longitude+0.008}%2C${spot.latitude+0.012}&layer=mapnik&marker=${spot.latitude}%2C${spot.longitude}`}
+              style={{ border: 0, width: '100%', height: '100%' }}
+            />
+          </View>
+        ) : (
+          // Native - React Native Maps
+          MapView && (
+            <MapView style={styles.map} initialRegion={region}>
+              <Marker coordinate={{ latitude: spot.latitude, longitude: spot.longitude }} title={spot.name} />
+            </MapView>
+          )
+        )}
       </View>
 
       <LinearGradient

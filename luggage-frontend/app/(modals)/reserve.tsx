@@ -22,20 +22,39 @@ export default function TemplateModal() {
 
         {/* Header */}
         <Calendar onDayPress={day => {
-          if (!toDate) {
-            setToDate(day.dateString);
-          }
-          setFromDate(day.dateString);
           console.log('selected day', day);
 
-          console.log({fromDate, toDate});
+          if (!fromDate) {
+            // First click: set the start date
+            setFromDate(day.dateString);
+            setToDate(''); // Clear toDate
+          } else if (!toDate) {
+            // Second click: set the end date
+            const selectedDate = new Date(day.dateString);
+            const startDate = new Date(fromDate);
+
+            if (selectedDate >= startDate) {
+              // Valid range: toDate is after or equal to fromDate
+              setToDate(day.dateString);
+            } else {
+              // Invalid range: user clicked a date before fromDate, reset
+              setFromDate(day.dateString);
+              setToDate('');
+            }
+          } else {
+            // Both dates already set: reset and start over
+            setFromDate(day.dateString);
+            setToDate('');
+          }
+
+          console.log({fromDate: fromDate || day.dateString, toDate});
         }}
           markingType={'period'}
           markedDates={{
-            toDate: {selected: true, startingDay: true, color: '#70d7c7', textColor: 'white'},
-            fromDate: {selected: true, endingDay: true, color: '#70d7c7', textColor: 'white'}
+            [fromDate]: {selected: true, startingDay: true, color: '#70d7c7', textColor: 'white'},
+            [toDate]: {selected: true, endingDay: true, color: '#70d7c7', textColor: 'white'}
           }}
-          
+
         />
 
         {/* Body */}

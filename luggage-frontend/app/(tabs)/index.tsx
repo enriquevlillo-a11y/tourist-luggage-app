@@ -22,6 +22,8 @@ import { useSpotsStore } from "../../stores/spots";
 //Pick the correct base url depending on the platform
 function getApiBase() {
   if (Platform.OS === "android") return "http://10.0.2.2:8081";
+  if (Platform.OS === "web") return "http://localhost:8081";
+  if (Platform.OS === "ios") return "http://localhost:8081";
   return "http://localhost:8081";
 }
 
@@ -35,7 +37,10 @@ async function fetchLocations() {
     }
     const data = await res.json();
 
-    const normalized = data.map((location: any) => ({
+    // Backend returns paginated response with 'content' array
+    const locations = data.content || data;
+
+    const normalized = locations.map((location: any) => ({
       id: String(location.id),
       name: location.name,
       pricePerHour: Number(location.pricePerHour),
@@ -49,7 +54,10 @@ async function fetchLocations() {
     useSpotsStore.getState().setSpots(normalized);
   } catch (error) {
     console.error("Error fetching locations:", error);
-
+    // Log more details for debugging
+    if (error instanceof Error) {
+      console.error("Error details:", error.message);
+    }
   }
 }
 
@@ -61,13 +69,6 @@ export default function Home() {
 
   useEffect(() => {
     fetchLocations();
-    for (const item of data) {
-      console.log("---- Location ----");
-      Object.entries(item).forEach(([key, value]) => {
-        console.log(`${key}:`, value);
-      });
-    }
-
   }, []);
 
   //Filter spots based on search query

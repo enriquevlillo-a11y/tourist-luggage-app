@@ -1,6 +1,5 @@
 package com.dani.luggagebackend.Model;
 
-
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -32,11 +31,13 @@ public class Location {
     private String city;
     private Double lat;
     private Double lng;
+    @Column(name = "price_per_hour")
     private BigDecimal pricePerHour;
     private Integer capacity;
 
     private String hours;
 
+    @Column(name = "is_active")
     @Builder.Default
     private Boolean isActive = true;
 }

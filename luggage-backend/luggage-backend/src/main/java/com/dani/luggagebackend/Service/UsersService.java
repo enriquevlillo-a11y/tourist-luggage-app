@@ -86,6 +86,7 @@ public class UsersService {
      * @return LoginResponse with user info and JWT token
      * @throws RuntimeException if credentials are invalid
      */
+    @Transactional(readOnly = true)
     public LoginResponse login(LoginRequest request) {
         Users user = usersRepo.findByEmail(request.getEmail())
                 .orElseThrow(() -> new UnauthorizedException("Invalid email or password"));
@@ -117,6 +118,7 @@ public class UsersService {
      * @param userId User ID
      * @return UserResponse if found
      */
+    @Transactional(readOnly = true)
     public Optional<UserResponse> getUserById(UUID userId) {
         return usersRepo.findById(userId).map(this::convertToResponse);
     }
@@ -127,6 +129,7 @@ public class UsersService {
      * @param email User email
      * @return UserResponse if found
      */
+    @Transactional(readOnly = true)
     public Optional<UserResponse> getUserByEmail(String email) {
         return usersRepo.findByEmail(email).map(this::convertToResponse);
     }
@@ -136,6 +139,7 @@ public class UsersService {
      *
      * @return List of all users
      */
+    @Transactional(readOnly = true)
     public List<UserResponse> getAllUsers() {
         return usersRepo.findAll().stream()
                 .map(this::convertToResponse)
@@ -148,6 +152,7 @@ public class UsersService {
      * @param role User role
      * @return List of users with specified role
      */
+    @Transactional(readOnly = true)
     public List<UserResponse> getUsersByRole(Users.Role role) {
         return usersRepo.findByRole(role).stream()
                 .map(this::convertToResponse)
@@ -262,6 +267,7 @@ public class UsersService {
      * @param query Search query
      * @return List of matching users
      */
+    @Transactional(readOnly = true)
     public List<UserResponse> searchUsers(String query) {
         List<Users> users = usersRepo.findByFullNameContainingIgnoreCase(query);
 
@@ -290,6 +296,7 @@ public class UsersService {
     /**
      * Convert Users entity to UserResponse DTO
      */
+    @Transactional(readOnly = true)
     private UserResponse convertToResponse(Users user) {
         // Count bookings for this user
         Integer totalBookings = bookingRepo.findAll().stream()

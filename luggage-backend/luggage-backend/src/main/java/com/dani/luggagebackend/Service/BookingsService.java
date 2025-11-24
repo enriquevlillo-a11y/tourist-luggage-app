@@ -91,6 +91,7 @@ public class BookingsService {
      * @param bookingId Booking UUID
      * @return Booking response if found
      */
+    @Transactional(readOnly = true)
     public Optional<BookingResponse> getBookingById(UUID bookingId) {
         return bookingRepo.findById(bookingId)
                 .map(this::convertToResponse);
@@ -102,6 +103,7 @@ public class BookingsService {
      * @param userId User UUID
      * @return List of user's bookings
      */
+    @Transactional(readOnly = true)
     public List<BookingResponse> getUserBookings(UUID userId) {
         return bookingRepo.findAll().stream()
                 .filter(booking -> booking.getUser().getId().equals(userId))
@@ -118,7 +120,8 @@ public class BookingsService {
      * @param userId    User ID making the update
      * @param request   Update details
      * @return Updated booking
-     * @throws RuntimeException if booking not found, unauthorized, or invalid status
+     * @throws RuntimeException if booking not found, unauthorized, or invalid
+     *                          status
      */
     @Transactional
     public BookingResponse updateBooking(UUID bookingId, UUID userId, UpdateBookingRequest request) {
@@ -267,6 +270,7 @@ public class BookingsService {
      *
      * @return List of all bookings
      */
+    @Transactional(readOnly = true)
     public List<BookingResponse> getAllBookings() {
         return bookingRepo.findAll().stream()
                 .map(this::convertToResponse)
@@ -276,8 +280,8 @@ public class BookingsService {
     /**
      * Calculate price in cents based on duration and hourly rate
      *
-     * @param startTime Start time
-     * @param endTime   End time
+     * @param startTime    Start time
+     * @param endTime      End time
      * @param pricePerHour Price per hour
      * @return Price in cents
      */
@@ -293,6 +297,7 @@ public class BookingsService {
     /**
      * Convert Booking entity to BookingResponse DTO
      */
+    @Transactional(readOnly = true)
     private BookingResponse convertToResponse(Booking booking) {
         return BookingResponse.builder()
                 .id(booking.getId())

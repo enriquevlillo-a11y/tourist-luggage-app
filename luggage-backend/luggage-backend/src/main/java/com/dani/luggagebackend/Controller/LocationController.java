@@ -6,6 +6,9 @@ import com.dani.luggagebackend.DTO.NearbyLocationRequest;
 import com.dani.luggagebackend.Service.LocationService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -31,9 +34,9 @@ public class LocationController {
      *
      * Example request body:
      * {
-     *   "latitude": 40.7128,
-     *   "longitude": -74.0060,
-     *   "radiusKm": 10.0
+     * "latitude": 40.7128,
+     * "longitude": -74.0060,
+     * "radiusKm": 10.0
      * }
      *
      * @param request Contains user's location and desired search radius
@@ -52,8 +55,7 @@ public class LocationController {
         List<LocationResponse> locations = locationService.findNearbyLocations(
                 request.getLatitude(),
                 request.getLongitude(),
-                radius
-        );
+                radius);
 
         return ResponseEntity.ok(locations);
     }
@@ -72,14 +74,21 @@ public class LocationController {
     }
 
     /**
-     * Gets all available storage locations.
+     * Gets all available storage locations with pagination.
      * Useful for admins or displaying all locations on a map.
      *
-     * @return List of all locations
+     * Example: GET /api/locations?page=0&size=20
+     *
+     * @param page Page number (0-indexed, default: 0)
+     * @param size Page size (default: 20)
+     * @return Page of locations with metadata
      */
     @GetMapping
-    public ResponseEntity<List<LocationResponse>> getAllLocations() {
-        List<LocationResponse> locations = locationService.getAllLocations();
+    public ResponseEntity<Page<LocationResponse>> getAllLocations(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<LocationResponse> locations = locationService.getAllLocations(pageable);
         return ResponseEntity.ok(locations);
     }
 
@@ -91,13 +100,13 @@ public class LocationController {
      * Header: Authorization: Bearer <jwt-token>
      * Body:
      * {
-     *   "name": "Downtown Luggage Storage",
-     *   "address": "123 Main St, New York, NY",
-     *   "latitude": 40.7128,
-     *   "longitude": -74.0060,
-     *   "pricePerHour": 5.00,
-     *   "capacity": 50,
-     *   "hours": "Mon-Fri: 9AM-6PM"
+     * "name": "Downtown Luggage Storage",
+     * "address": "123 Main St, New York, NY",
+     * "latitude": 40.7128,
+     * "longitude": -74.0060,
+     * "pricePerHour": 5.00,
+     * "capacity": 50,
+     * "hours": "Mon-Fri: 9AM-6PM"
      * }
      *
      * @param request Location creation request
@@ -123,7 +132,7 @@ public class LocationController {
      * Header: Authorization: Bearer <jwt-token>
      * Body: { ... location details ... }
      *
-     * @param id Location ID to update
+     * @param id      Location ID to update
      * @param request Update request
      * @return Updated location
      */
@@ -165,7 +174,8 @@ public class LocationController {
     /**
      * Gets all locations owned by a specific host.
      *
-     * NOTE: In production, the hostId should come from the authenticated user's session/token.
+     * NOTE: In production, the hostId should come from the authenticated user's
+     * session/token.
      *
      * @param hostId The host's user ID
      * @return List of locations owned by the host
@@ -196,10 +206,10 @@ public class LocationController {
      *
      * Example: GET /api/locations/filter?minPrice=5&maxPrice=15&minCapacity=20
      *
-     * @param minPrice Minimum price per hour (optional)
-     * @param maxPrice Maximum price per hour (optional)
+     * @param minPrice    Minimum price per hour (optional)
+     * @param maxPrice    Maximum price per hour (optional)
      * @param minCapacity Minimum capacity (optional)
-     * @param city City filter (optional)
+     * @param city        City filter (optional)
      * @return List of filtered active locations
      */
     @GetMapping("/filter")
@@ -219,7 +229,7 @@ public class LocationController {
         } else if (minCapacity != null) {
             locations = locationService.filterByCapacity(minCapacity);
         } else {
-            locations = locationService.getAllLocations();
+            locations = locationService.getAllLocations(PageRequest.of(0, Integer.MAX_VALUE)).getContent();
         }
 
         return ResponseEntity.ok(locations);
@@ -230,12 +240,12 @@ public class LocationController {
      *
      * Example: POST /api/locations/nearby/filtered
      * Body: {
-     *   "latitude": 40.7128,
-     *   "longitude": -74.0060,
-     *   "radiusKm": 10.0,
-     *   "minPrice": 5.0,
-     *   "maxPrice": 15.0,
-     *   "minCapacity": 20
+     * "latitude": 40.7128,
+     * "longitude": -74.0060,
+     * "radiusKm": 10.0,
+     * "minPrice": 5.0,
+     * "maxPrice": 15.0,
+     * "minCapacity": 20
      * }
      *
      * @param params Request parameters including location and filters
@@ -249,19 +259,15 @@ public class LocationController {
 
         Double latitude = ((Number) params.get("latitude")).doubleValue();
         Double longitude = ((Number) params.get("longitude")).doubleValue();
-        Double radiusKm = params.containsKey("radiusKm") ?
-                ((Number) params.get("radiusKm")).doubleValue() : 5.0;
+        Double radiusKm = params.containsKey("radiusKm") ? ((Number) params.get("radiusKm")).doubleValue() : 5.0;
 
-        BigDecimal minPrice = params.containsKey("minPrice") ?
-                new BigDecimal(params.get("minPrice").toString()) : null;
-        BigDecimal maxPrice = params.containsKey("maxPrice") ?
-                new BigDecimal(params.get("maxPrice").toString()) : null;
-        Integer minCapacity = params.containsKey("minCapacity") ?
-                ((Number) params.get("minCapacity")).intValue() : null;
+        BigDecimal minPrice = params.containsKey("minPrice") ? new BigDecimal(params.get("minPrice").toString()) : null;
+        BigDecimal maxPrice = params.containsKey("maxPrice") ? new BigDecimal(params.get("maxPrice").toString()) : null;
+        Integer minCapacity = params.containsKey("minCapacity") ? ((Number) params.get("minCapacity")).intValue()
+                : null;
 
         List<LocationResponse> locations = locationService.findNearbyWithFilters(
-                latitude, longitude, radiusKm, minPrice, maxPrice, minCapacity
-        );
+                latitude, longitude, radiusKm, minPrice, maxPrice, minCapacity);
 
         return ResponseEntity.ok(locations);
     }
@@ -311,12 +317,13 @@ public class LocationController {
     /**
      * Check location availability for a specific time period.
      *
-     * Example: GET /api/locations/{id}/availability?startTime=...&endTime=...&capacity=5
+     * Example: GET
+     * /api/locations/{id}/availability?startTime=...&endTime=...&capacity=5
      *
-     * @param id Location ID
+     * @param id        Location ID
      * @param startTime Booking start time (ISO 8601 format)
-     * @param endTime Booking end time (ISO 8601 format)
-     * @param capacity Required capacity
+     * @param endTime   Booking end time (ISO 8601 format)
+     * @param capacity  Required capacity
      * @return Boolean indicating availability
      */
     @GetMapping("/{id}/availability")
@@ -345,7 +352,7 @@ public class LocationController {
      * Header: Authorization: Bearer <jwt-token>
      * Body: { "isActive": false }
      *
-     * @param id Location ID
+     * @param id      Location ID
      * @param payload Contains isActive boolean
      * @return Updated location
      */

@@ -15,12 +15,13 @@ This is a Spring Boot backend application for a tourist luggage storage service.
 - PostgreSQL 14
 - Spring Data JPA
 - Spring Security (JWT authentication)
-- Flyway (Database migrations)
+- Flyway (Database migrations - currently disabled in development)
 - Project Lombok
 - Maven
 - Jakarta Validation
 - JJWT 0.12.3 (JWT library)
 - BCrypt (password hashing)
+- Bucket4j 8.7.0 (Rate limiting)
 
 ## Development Commands
 
@@ -152,6 +153,17 @@ The application follows a standard Spring Boot layered architecture:
    - **JwtUtil**: JWT token generation, parsing, and validation (extracts claims, verifies signatures)
    - **JwtAuthenticationFilter**: Servlet filter that intercepts requests, extracts JWT from Authorization header, validates token, and sets authentication in SecurityContext
    - **SecurityConfig**: Spring Security configuration defining public endpoints, CORS settings, and authentication requirements
+
+7. **Exception Layer** (`com.dani.luggagebackend.Exception`)
+   - **GlobalExceptionHandler**: `@RestControllerAdvice` that catches exceptions and returns standardized JSON error responses
+   - Custom exceptions: `ResourceNotFoundException`, `BadRequestException`, `UnauthorizedException`, `ForbiddenException`, `RateLimitExceededException`
+   - **ErrorResponse**: DTO for consistent error responses with timestamp, status, error type, message, path, and optional validation errors
+
+8. **Rate Limiting** (`com.dani.luggagebackend.Service.RateLimitService`)
+   - Uses Bucket4j token bucket algorithm to prevent brute-force attacks
+   - **Auth endpoints** (login/register): 5 requests per minute per IP
+   - **General API endpoints**: 100 requests per minute per IP
+   - In-memory cache using `ConcurrentHashMap` (consider Redis for production distributed systems)
 
 ### Domain Model
 
@@ -468,6 +480,24 @@ private String email;
 private BigDecimal pricePerHour;
 ```
 
+### 13. Exception Handling Pattern
+Use custom exceptions instead of generic RuntimeException for better error handling:
+```java
+// BAD - Don't use generic RuntimeException
+if (!location.isPresent()) {
+    throw new RuntimeException("Location not found");
+}
+
+// GOOD - Use custom exceptions
+if (!location.isPresent()) {
+    throw new ResourceNotFoundException("Location not found with id: " + locationId);
+}
+
+if (!user.getId().equals(authenticatedUserId)) {
+    throw new ForbiddenException("You don't have permission to modify this resource");
+}
+```
+
 ## Mock Data
 
 The application includes comprehensive mock data in `src/main/resources/data.sql`:
@@ -552,28 +582,100 @@ curl -X POST http://localhost:8081/api/bookings \
   }'
 ```
 
+## Error Handling & Exception Management
+
+The application implements comprehensive error handling using Spring's `@RestControllerAdvice`:
+
+### Custom Exceptions
+- **ResourceNotFoundException** (404): Entity not found
+- **BadRequestException** (400): Invalid request data
+- **UnauthorizedException** (401): Authentication required/failed
+- **ForbiddenException** (403): Insufficient permissions
+- **RateLimitExceededException** (429): Too many requests
+
+### ErrorResponse Structure
+All error responses follow a consistent format:
+```json
+{
+  "timestamp": "2025-01-24T12:00:00Z",
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Descriptive error message",
+  "path": "/api/users/login",
+  "validationErrors": {
+    "email": "Email must be valid",
+    "password": "Password is required"
+  }
+}
+```
+
+### Usage Pattern
+```java
+// In services, throw custom exceptions instead of generic RuntimeException
+if (!entity.isPresent()) {
+    throw new ResourceNotFoundException("User not found with id: " + userId);
+}
+
+if (!user.getRole().equals(Role.HOST)) {
+    throw new ForbiddenException("Only hosts can create locations");
+}
+```
+
+## Rate Limiting
+
+The application uses **Bucket4j** to implement token bucket rate limiting:
+
+### Configuration
+- **Authentication endpoints** (`/api/users/login`, `/api/users/register`): 5 requests/minute per IP
+- **General API endpoints**: 100 requests/minute per IP
+- Uses in-memory `ConcurrentHashMap` for bucket storage
+
+### Implementation Pattern
+Controllers or filters can use `RateLimitService` to enforce limits:
+```java
+Bucket bucket = rateLimitService.resolveAuthBucket(clientIp);
+if (!bucket.tryConsume(1)) {
+    throw new RateLimitExceededException("Rate limit exceeded. Please try again later.");
+}
+```
+
+**Production Note**: For distributed systems, replace in-memory cache with Redis or similar distributed cache.
+
 ## Database Migrations
 
-The application uses **Flyway** for database schema version control and migrations.
+The application includes **Flyway** for database schema version control and migrations.
+
+### Current Status
+- **Development**: Flyway is **disabled** (`spring.flyway.enabled=false`) to avoid circular dependency with JPA
+- Schema managed by JPA with `spring.jpa.hibernate.ddl-auto=update`
+- Migration files exist in `src/main/resources/db/migration/` but are not executed
 
 ### Migration Files
 
 Located in `src/main/resources/db/migration/`:
 - `V1__Init.sql` - Initial schema creation (users, locations, bookings tables)
 
+### Enabling Flyway (Production)
+
+To enable Flyway for production:
+
+1. Set `spring.flyway.enabled=true` in `application-prod.properties`
+2. Set `spring.jpa.hibernate.ddl-auto=validate` (never use `update`)
+3. Ensure migration files are up-to-date with current schema
+4. Flyway will automatically run migrations on startup and track them in `flyway_schema_history` table
+
 ### Creating New Migrations
 
 1. Create a new file: `src/main/resources/db/migration/V{number}__{description}.sql`
    - Example: `V2__Add_user_phone_number.sql`
 2. Naming convention: `V{version}__{description}.sql` (double underscore!)
-3. Flyway automatically runs new migrations on application startup
-4. Migrations are tracked in `flyway_schema_history` table
+3. Test migrations in development before deploying to production
 
-### Production Migration Strategy
+### Known Issue: Flyway Circular Dependency
 
-- Flyway runs migrations automatically on startup
-- In production, set `spring.jpa.hibernate.ddl-auto=validate` (never use `update`)
-- Use Flyway exclusively for schema changes in production environments
+If you encounter "Circular depends-on relationship between 'flyway' and 'entityManagerFactory'":
+- **Solution**: Set `spring.flyway.enabled=false` and use `spring.jpa.hibernate.ddl-auto=update` for development
+- **For Production**: Enable Flyway and set `ddl-auto=validate` to use proper migrations
 
 ## AWS Deployment
 
@@ -652,12 +754,13 @@ Production environment uses `application-prod.properties`:
 ## Production Notes
 
 1. **JWT Secret**: Store `jwt.secret` as an environment variable, not in application.properties
-2. **Database Migrations**: Use Flyway for all schema changes in production (never use `ddl-auto=update`)
+2. **Database Migrations**: Enable Flyway (`spring.flyway.enabled=true`) and set `ddl-auto=validate` (never use `update`)
 3. **Database Port Conflict**: Local PostgreSQL services must be stopped before starting Docker PostgreSQL
-4. **Error Handling**: Uses generic `RuntimeException`. Implement custom exceptions and global exception handler for better error responses
-5. **Soft Delete**: Currently uses hard delete. Consider implementing soft delete for users and locations
-6. **Cascade Operations**: Be careful with entity deletions - may need to handle bookings when deleting users/locations
-7. **CORS Configuration**: Currently allows all origins (`*`). In production, restrict to specific frontend domains
-8. **Token Expiration**: Currently set to 24 hours. Adjust based on security requirements
-9. **JJWT Deprecations**: Some JJWT methods are deprecated (SignatureAlgorithm). Consider updating to newer API patterns
-10. **SSL/TLS**: Production deployment should use HTTPS. AWS Elastic Beanstalk can handle SSL certificates via AWS Certificate Manager
+4. **Error Handling**: ✅ Implemented - Uses custom exceptions and GlobalExceptionHandler for standardized error responses
+5. **Rate Limiting**: ✅ Implemented - Uses Bucket4j in-memory cache. For distributed systems, migrate to Redis
+6. **Soft Delete**: Currently uses hard delete. Consider implementing soft delete for users and locations
+7. **Cascade Operations**: Be careful with entity deletions - may need to handle bookings when deleting users/locations
+8. **CORS Configuration**: Currently allows all origins (`*`). In production, restrict to specific frontend domains
+9. **Token Expiration**: Currently set to 24 hours. Adjust based on security requirements
+10. **JJWT Deprecations**: Some JJWT methods are deprecated (SignatureAlgorithm). Consider updating to newer API patterns
+11. **SSL/TLS**: Production deployment should use HTTPS. AWS Elastic Beanstalk can handle SSL certificates via AWS Certificate Manager

@@ -12,7 +12,10 @@ import com.dani.luggagebackend.Repo.BookingRepo;
 import com.dani.luggagebackend.Repo.LocationRepo;
 import com.dani.luggagebackend.Repo.UsersRepo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -63,14 +66,14 @@ public class LocationService {
     }
 
     /**
-     * Gets all available storage locations.
+     * Gets all available storage locations with pagination.
      *
-     * @return List of all locations
+     * @param pageable Pagination information (page number, size, sort)
+     * @return Page of locations
      */
-    public List<LocationResponse> getAllLocations() {
-        return locationRepo.findAll().stream()
-                .map(location -> convertToResponse(location, null, null))
-                .collect(Collectors.toList());
+    public Page<LocationResponse> getAllLocations(Pageable pageable) {
+        return locationRepo.findAll(pageable)
+                .map(location -> convertToResponse(location, null, null));
     }
 
     /**
@@ -81,6 +84,7 @@ public class LocationService {
      * @return Created LocationResponse
      * @throws RuntimeException if host not found or not a HOST role
      */
+    @Transactional
     public LocationResponse createLocation(UUID hostId, CreateLocationRequest request) {
         Users host = usersRepo.findById(hostId)
                 .orElseThrow(() -> new ResourceNotFoundException("Host not found"));
@@ -128,6 +132,7 @@ public class LocationService {
      * @return Updated LocationResponse
      * @throws RuntimeException if location not found or host doesn't own it
      */
+    @Transactional
     public LocationResponse updateLocation(UUID locationId, UUID hostId, CreateLocationRequest request) {
         Location location = locationRepo.findById(locationId)
                 .orElseThrow(() -> new RuntimeException("Location not found"));
@@ -156,6 +161,7 @@ public class LocationService {
      * @param hostId     Host ID making the request
      * @throws RuntimeException if location not found or host doesn't own it
      */
+    @Transactional
     public void deleteLocation(UUID locationId, UUID hostId) {
         Location location = locationRepo.findById(locationId)
                 .orElseThrow(() -> new RuntimeException("Location not found"));
@@ -276,6 +282,7 @@ public class LocationService {
      * @param requiredCapacity Required capacity
      * @return true if location has availability
      */
+    @Transactional(readOnly = true)
     public boolean isLocationAvailable(UUID locationId, Instant startTime, Instant endTime, Integer requiredCapacity) {
         Location location = locationRepo.findById(locationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Location not found"));
@@ -306,6 +313,7 @@ public class LocationService {
      * @param isActive   New status
      * @return Updated location
      */
+    @Transactional
     public LocationResponse toggleLocationStatus(UUID locationId, UUID hostId, Boolean isActive) {
         Location location = locationRepo.findById(locationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Location not found"));
@@ -328,6 +336,7 @@ public class LocationService {
      * @param userLng  User's longitude (nullable)
      * @return LocationResponse DTO
      */
+    @Transactional(readOnly = true)
     private LocationResponse convertToResponse(Location location, Double userLat, Double userLng) {
         Double distance = null;
         if (userLat != null && userLng != null) {
